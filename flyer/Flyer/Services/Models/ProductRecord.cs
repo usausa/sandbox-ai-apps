@@ -1,0 +1,18 @@
+namespace Flyer.Services.Models;
+
+using Microsoft.Extensions.VectorData;
+
+public sealed class ProductRecord
+{
+    [VectorStoreKey]
+    public string Id { get; set; } = string.Empty;
+
+    [VectorStoreData(IsFullTextIndexed = true)]
+    public string Name { get; set; } = string.Empty;
+
+    [VectorStoreData]
+    public int Price { get; set; }
+
+    [VectorStoreVector(Dimensions: 1536, DistanceFunction = DistanceFunction.CosineSimilarity)]
+    public string NameEmbedding { get; set; } = string.Empty;
+}
