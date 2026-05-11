@@ -13,12 +13,18 @@ using Microsoft.Extensions.Logging;
 public sealed class FlyerImageReader
 {
     private const string SystemPrompt =
-        "あなたはチラシ画像から広告商品名と価格を抽出するOCRアシスタントです。" +
+        "あなたはチラシ画像から販売商品の商品名と価格を抽出するOCRアシスタントです。" +
         "余分な説明・マークダウン・コードフェンスを一切含めず、以下のスキーマのJSONオブジェクトのみを返してください: " +
         "{\"items\":[{\"name\":\"<商品名>\",\"price\":<税込整数円>}]}. " +
-        "ルール: 'name'はチラシに印刷されている商品名をそのまま記載してください。" +
-        "'price'は記号・カンマ・小数点を含まない日本円の整数値にしてください。" +
-        "価格が読み取れない商品は省略してください。存在しない商品を追加しないでください。";
+        "抽出ルール: " +
+        "'name'はチラシに印刷されている具体的な商品名をそのまま記載してください。" +
+        "'price'は記号・カンマ・小数点を含まない日本円の整数値にしてください。税抜き価格の場合は1.1倍して整数に丸めてください。" +
+        "除外ルール（以下は絶対に含めないこと）: " +
+        "・クーポン・ポイント還元・割引券などのクーポン告知。" +
+        "・「お買い得」「自慢の逸品」「大特価」などのキャッチコピーや見出し。" +
+        "・祝日名・イベント名・キャンペーン名（例: 昭和の日、感謝祭）。" +
+        "・価格が0円または読み取れないもの。" +
+        "・実在しない商品や画像に存在しない商品。";
 
     private readonly IChatClient chatClient;
     private readonly ILogger<FlyerImageReader> logger;
@@ -91,7 +97,7 @@ public sealed class FlyerImageReader
                     continue;
                 }
 
-                if (!TryReadInt(priceProp, out var price))
+                if (!TryReadInt(priceProp, out var price) || price <= 0)
                 {
                     continue;
                 }

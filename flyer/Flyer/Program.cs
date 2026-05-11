@@ -29,6 +29,7 @@ var foundryOptions = builder.Configuration.GetSection("Foundry").Get<FoundryOpti
 var searchOptions = builder.Configuration.GetSection("AzureAISearch").Get<AzureAISearchOptions>() ?? new AzureAISearchOptions();
 var productServiceOptions = builder.Configuration.GetSection("ProductService").Get<ProductServiceOptions>() ?? new ProductServiceOptions();
 
+builder.Services.AddLogging();
 builder.Services.AddSingleton(foundryOptions);
 builder.Services.AddSingleton(searchOptions);
 builder.Services.AddSingleton(productServiceOptions);
@@ -87,5 +88,5 @@ builder.ConfigureCommands(commands =>
 });
 
 var host = builder.Build();
-return await host.RunAsync();
-
+await host.RunAsync();
+Console.ReadLine();

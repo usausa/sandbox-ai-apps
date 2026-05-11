@@ -27,14 +27,21 @@ public sealed class CheckCommand : ICommandHandler
     [Option("--file", "-f", Description = "Flyer image file path (jpg/png/...)")]
     public string FilePath { get; set; } = string.Empty;
 
-    [Option("--top", "-t", Description = "Number of master candidates to retrieve per item")]
-    public int Top { get; set; } = 3;
+    [Option<int>("--top", "-t", Description = "Number of master candidates to retrieve per item", DefaultValue = 3)]
+    public int Top { get; set; }
 
     public async ValueTask ExecuteAsync(CommandContext context)
     {
         if (string.IsNullOrWhiteSpace(FilePath) || !File.Exists(FilePath))
         {
             await Console.Error.WriteLineAsync($"Image file not found: {FilePath}").ConfigureAwait(false);
+            context.ExitCode = 1;
+            return;
+        }
+
+        if (Top < 1)
+        {
+            await Console.Error.WriteLineAsync("--top must be 1 or greater.").ConfigureAwait(false);
             context.ExitCode = 1;
             return;
         }
@@ -58,7 +65,7 @@ public sealed class CheckCommand : ICommandHandler
         {
             ct.ThrowIfCancellationRequested();
 
-            var candidates = await productService.SearchAsync(item.Name, Top, ct).ConfigureAwait(false);
+            var candidates = await productService.SearchAsync(item.Name, Top, cancellationToken: ct).ConfigureAwait(false); // minScore は既定値 0.75 を使用
             var result = await analyzer.AnalyzeAsync(item, candidates, ct).ConfigureAwait(false);
 
             Console.WriteLine(

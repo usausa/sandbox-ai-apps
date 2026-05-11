@@ -35,7 +35,8 @@ public sealed class LoadCommand : ICommandHandler
         var ct = context.CancellationToken;
 
         Console.WriteLine($"マスタデータを '{FilePath}' からロード中...");
-        await productService.EnsureIndexAsync(ct).ConfigureAwait(false);
+        Console.WriteLine("既存インデックスを削除して再作成しています...");
+        await productService.RecreateIndexAsync(ct).ConfigureAwait(false);
 
         var count = 0;
         await foreach (var record in csvLoader.LoadAsync(FilePath, ct).ConfigureAwait(false))

@@ -19,8 +19,6 @@ public sealed class TestCommand : ICommandHandler
 
     public async ValueTask ExecuteAsync(CommandContext context)
     {
-        try
-        {
         var ct = context.CancellationToken;
 
         // --- インデックス作成（初回のみ） ---
@@ -51,19 +49,13 @@ public sealed class TestCommand : ICommandHandler
         await RunSearchAsync("お茶のペットボトル", top: 3, ct).ConfigureAwait(false);
         await RunSearchAsync("洗剤", top: 3, ct).ConfigureAwait(false);
         await RunSearchAsync("カップ麺", top: 3, ct).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine(e);
-            throw;
-        }
     }
 
     private async Task RunSearchAsync(string query, int top, CancellationToken ct)
     {
         Console.WriteLine($"\n===== 検索: 「{query}」 =====");
-        var results = await productService.SearchAsync(query, top, ct).ConfigureAwait(false);
-        foreach (var (r, i) in results.Select((r, i) => (r, i)))
+        var results = await productService.SearchAsync(query, top, cancellationToken: ct).ConfigureAwait(false);
+        foreach (var (r, i) in results.Select((item, idx) => (item, idx)))
         {
             Console.WriteLine($"  {i + 1}. {r.Name} | ¥{r.Price:N0} | カテゴリ: {r.Category ?? "-"} | スコア: {r.Score:F4}");
         }

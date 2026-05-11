@@ -30,6 +30,13 @@ public sealed class ProductService
         await collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>既存インデックスを削除して再作成する。</summary>
+    public async Task RecreateIndexAsync(CancellationToken cancellationToken = default)
+    {
+        await collection.EnsureCollectionDeletedAsync(cancellationToken).ConfigureAwait(false);
+        await collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>商品を登録（または更新）する。</summary>
     public async Task RegisterProductAsync(
         string id,
@@ -72,13 +79,15 @@ public sealed class ProductService
         return count;
     }
 
-    /// <summary>クエリ文字列でベクトル検索を行い、上位 <paramref name="top"/> 件を返す。</summary>
+    /// <summary>クエリ文字列でベクトル検索を行い、上位 <paramref name="top"/> 件を返す。<paramref name="minScore"/> 未満のスコアは除外する。</summary>
     public async Task<IReadOnlyList<ProductSearchResult>> SearchAsync(
         string query,
         int top = 5,
+        double minScore = 0.75,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(query);
+        ArgumentOutOfRangeException.ThrowIfLessThan(top, 1);
 
         var queryResult = await embeddingGenerator.GenerateAsync([query], cancellationToken: cancellationToken).ConfigureAwait(false);
         var queryEmbedding = queryResult[0].Vector;
@@ -86,17 +95,20 @@ public sealed class ProductService
         var results = new List<ProductSearchResult>(top);
         await foreach (var hit in collection.SearchAsync(queryEmbedding, top, cancellationToken: cancellationToken).ConfigureAwait(false))
         {
+            var score = hit.Score ?? 0;
+            if (score < minScore)
+            {
+                continue;
+            }
+
             results.Add(new ProductSearchResult(
                 hit.Record.Id,
                 hit.Record.Name,
                 hit.Record.Price,
                 hit.Record.Category,
-                hit.Score ?? 0));
+                score));
         }
 
         return results;
     }
 }
-
-//    public double Score { get; set; }
-//}

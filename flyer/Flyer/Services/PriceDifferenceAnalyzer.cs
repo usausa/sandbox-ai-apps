@@ -17,8 +17,12 @@ public sealed class PriceDifferenceAnalyzer
         "あなたはチラシの広告価格と公式マスタ価格リストを比較するアシスタントです。" +
         "マークダウンや説明文を一切含めず、以下のスキーマのJSONオブジェクトのみを返してください: " +
         "{\"matched_name\":\"<候補の中で最も一致する公式商品名>\",\"matched_price\":<整数>,\"difference\":<整数>,\"comment\":\"<短いコメント>\"}. " +
-        "候補の中から最も一致する1件を選択してください。'difference' = チラシ価格 - マスタ価格（負の値はマスタより安いことを意味します）。" +
-        "一致する候補がない場合は matched_name を空文字、matched_price と difference を 0 にし、comment に理由を記載してください。";
+        "判断ルール: " +
+        "・各候補には similarity_score（0〜1、1が最も類似）が付いています。スコアが高いほどベクトル的に近い商品です。" +
+        "・スコアと商品名の両方を総合的に判断して最も一致する1件を選択してください。" +
+        "・スコアが0.85未満の候補しかない場合、または商品名が明らかに異なる場合は一致なしとしてください。" +
+        "・'difference' = チラシ価格 - マスタ価格（負の値はマスタより安いことを意味します）。" +
+        "・一致する候補がない場合は matched_name を空文字、matched_price と difference を 0 にし、comment に理由を記載してください。";
 
     private readonly IChatClient chatClient;
     private readonly ILogger<PriceDifferenceAnalyzer> logger;
@@ -67,11 +71,14 @@ public sealed class PriceDifferenceAnalyzer
     private static string BuildUserPrompt(FlyerItem item, IReadOnlyList<ProductSearchResult> candidates)
     {
         var sb = new StringBuilder();
-        sb.Append("チラシ商品: 商品名=\"").Append(item.Name).Append("\", 価格=").Append(item.Price).AppendLine();
-        sb.AppendLine("マスタ候補:");
+        sb.Append("チラシ商品: 商品名=\"").Append(item.Name).Append("\", 価格=").Append(item.Price).AppendLine("円");
+        sb.AppendLine("マスタ候補（similarity_scoreの降順）:");
         foreach (var c in candidates)
         {
-            sb.Append("- 商品名=\"").Append(c.Name).Append("\", 価格=").Append(c.Price).AppendLine();
+            sb.Append("- 商品名=\"").Append(c.Name)
+              .Append("\", 価格=").Append(c.Price)
+              .Append("円, similarity_score=").Append(c.Score.ToString("F4"))
+              .AppendLine();
         }
         return sb.ToString();
     }
