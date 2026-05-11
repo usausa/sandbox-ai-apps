@@ -8,7 +8,6 @@
     <File Path="Directory.Build.targets" />
     <File Path="LICENSE" />
     <File Path="README.md" />
-    <File Path="Flyer.sln.DotSettings" />
+    <File Path="FlyerChecker.sln.DotSettings" />
   </Folder>
-  <Project Path="Flyer/Flyer.csproj" Id="e490dafa-eb78-41e5-a0ef-d5347606520a" />
 </Solution>
