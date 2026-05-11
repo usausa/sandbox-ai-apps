@@ -8,5 +8,6 @@ public static class CommandBuilderExtensions
     {
         commands.AddCommand<LoadCommand>();
         commands.AddCommand<CheckCommand>();
+        commands.AddCommand<TestCommand>();
     }
 }

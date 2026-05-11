@@ -13,6 +13,9 @@ public sealed class ProductRecord
     [VectorStoreData]
     public int Price { get; set; }
 
+    [VectorStoreData]
+    public string? Category { get; set; }
+
     [VectorStoreVector(Dimensions: 1536, DistanceFunction = DistanceFunction.CosineSimilarity)]
-    public string NameEmbedding { get; set; } = string.Empty;
+    public ReadOnlyMemory<float> NameEmbedding { get; set; }
 }

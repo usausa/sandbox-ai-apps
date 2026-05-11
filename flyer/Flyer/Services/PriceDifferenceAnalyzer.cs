@@ -33,7 +33,7 @@ public sealed class PriceDifferenceAnalyzer
 
     public async Task<PriceCheckResult> AnalyzeAsync(
         FlyerItem flyerItem,
-        IReadOnlyList<ProductRecord> candidates,
+        IReadOnlyList<ProductSearchResult> candidates,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(flyerItem);
@@ -64,14 +64,14 @@ public sealed class PriceDifferenceAnalyzer
         return Parse(flyerItem, text);
     }
 
-    private static string BuildUserPrompt(FlyerItem item, IReadOnlyList<ProductRecord> candidates)
+    private static string BuildUserPrompt(FlyerItem item, IReadOnlyList<ProductSearchResult> candidates)
     {
         var sb = new StringBuilder();
-        sb.Append("Flyer item: name=\"").Append(item.Name).Append("\", price=").Append(item.Price).AppendLine();
-        sb.AppendLine("Candidates from master:");
+        sb.Append("チラシ商品: 商品名=\"").Append(item.Name).Append("\", 価格=").Append(item.Price).AppendLine();
+        sb.AppendLine("マスタ候補:");
         foreach (var c in candidates)
         {
-            sb.Append("- name=\"").Append(c.Name).Append("\", price=").Append(c.Price).AppendLine();
+            sb.Append("- 商品名=\"").Append(c.Name).Append("\", 価格=").Append(c.Price).AppendLine();
         }
         return sb.ToString();
     }

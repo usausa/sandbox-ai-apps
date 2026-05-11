@@ -27,9 +27,11 @@ builder.Configuration
 
 var foundryOptions = builder.Configuration.GetSection("Foundry").Get<FoundryOptions>() ?? new FoundryOptions();
 var searchOptions = builder.Configuration.GetSection("AzureAISearch").Get<AzureAISearchOptions>() ?? new AzureAISearchOptions();
+var productServiceOptions = builder.Configuration.GetSection("ProductService").Get<ProductServiceOptions>() ?? new ProductServiceOptions();
 
 builder.Services.AddSingleton(foundryOptions);
 builder.Services.AddSingleton(searchOptions);
+builder.Services.AddSingleton(productServiceOptions);
 
 // Microsoft Foundry (Azure OpenAI v1) chat & embeddings clients.
 builder.Services.AddSingleton<AzureOpenAIClient>(_ =>
@@ -64,18 +66,13 @@ builder.Services.AddSingleton<SearchIndexClient>(_ =>
 builder.Services.AddSingleton<VectorStoreCollection<string, ProductRecord>>(sp =>
 {
     var indexClient = sp.GetRequiredService<SearchIndexClient>();
-    var embeddingGenerator = sp.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
     return new AzureAISearchCollection<string, ProductRecord>(
         indexClient,
-        searchOptions.IndexName,
-        new AzureAISearchCollectionOptions
-        {
-            EmbeddingGenerator = embeddingGenerator
-        });
+        productServiceOptions.IndexName);
 });
 
 builder.Services.AddSingleton<MasterCsvLoader>();
-builder.Services.AddSingleton<ProductVectorStore>();
+builder.Services.AddSingleton<ProductService>();
 builder.Services.AddSingleton<FlyerImageReader>();
 builder.Services.AddSingleton<PriceDifferenceAnalyzer>();
 
@@ -91,3 +88,4 @@ builder.ConfigureCommands(commands =>
 
 var host = builder.Build();
 return await host.RunAsync();
+

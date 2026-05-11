@@ -4,21 +4,21 @@ using Flyer.Services;
 
 using Smart.CommandLine.Hosting;
 
-[Command("load", "Load the master product data into the vector database.")]
+[Command("load", "Master CSV からベクトル DB に商品マスタデータをロードする。")]
 public sealed class LoadCommand : ICommandHandler
 {
     private readonly MasterCsvLoader csvLoader;
-    private readonly ProductVectorStore vectorStore;
+    private readonly ProductService productService;
 
-    public LoadCommand(MasterCsvLoader csvLoader, ProductVectorStore vectorStore)
+    public LoadCommand(MasterCsvLoader csvLoader, ProductService productService)
     {
         ArgumentNullException.ThrowIfNull(csvLoader);
-        ArgumentNullException.ThrowIfNull(vectorStore);
+        ArgumentNullException.ThrowIfNull(productService);
         this.csvLoader = csvLoader;
-        this.vectorStore = vectorStore;
+        this.productService = productService;
     }
 
-    [Option("--file", "-f", Description = "Master CSV file path (columns: Id,Name,Price)")]
+    [Option("--file", "-f", Description = "マスタ CSV ファイルパス (列: Id,Name,Price,Category)")]
     public string FilePath { get; set; } = string.Empty;
 
     public async ValueTask ExecuteAsync(CommandContext context)
@@ -27,19 +27,23 @@ public sealed class LoadCommand : ICommandHandler
 
         if (string.IsNullOrWhiteSpace(FilePath) || !File.Exists(FilePath))
         {
-            await Console.Error.WriteLineAsync($"CSV file not found: {FilePath}").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"CSV ファイルが見つかりません: {FilePath}").ConfigureAwait(false);
             context.ExitCode = 1;
             return;
         }
 
         var ct = context.CancellationToken;
 
-        Console.WriteLine($"Loading master data from '{FilePath}'...");
-        await vectorStore.EnsureCreatedAsync(ct).ConfigureAwait(false);
+        Console.WriteLine($"マスタデータを '{FilePath}' からロード中...");
+        await productService.EnsureIndexAsync(ct).ConfigureAwait(false);
 
-        var records = csvLoader.LoadAsync(FilePath, ct);
-        var count = await vectorStore.UpsertAsync(records, ct).ConfigureAwait(false);
+        var count = 0;
+        await foreach (var record in csvLoader.LoadAsync(FilePath, ct).ConfigureAwait(false))
+        {
+            await productService.RegisterProductAsync(record.Id, record.Name, record.Price, record.Category, ct).ConfigureAwait(false);
+            count++;
+        }
 
-        Console.WriteLine($"Loaded {count} record(s) into the vector database.");
+        Console.WriteLine($"{count} 件をベクトル DB に登録しました。");
     }
 }

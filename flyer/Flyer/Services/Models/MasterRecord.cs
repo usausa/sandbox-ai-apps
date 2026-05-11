@@ -7,4 +7,6 @@ public sealed class MasterRecord
     public string Name { get; set; } = string.Empty;
 
     public int Price { get; set; }
+
+    public string? Category { get; set; }
 }

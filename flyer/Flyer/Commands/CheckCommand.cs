@@ -8,19 +8,19 @@ using Smart.CommandLine.Hosting;
 public sealed class CheckCommand : ICommandHandler
 {
     private readonly FlyerImageReader imageReader;
-    private readonly ProductVectorStore vectorStore;
+    private readonly ProductService productService;
     private readonly PriceDifferenceAnalyzer analyzer;
 
     public CheckCommand(
         FlyerImageReader imageReader,
-        ProductVectorStore vectorStore,
+        ProductService productService,
         PriceDifferenceAnalyzer analyzer)
     {
         ArgumentNullException.ThrowIfNull(imageReader);
-        ArgumentNullException.ThrowIfNull(vectorStore);
+        ArgumentNullException.ThrowIfNull(productService);
         ArgumentNullException.ThrowIfNull(analyzer);
         this.imageReader = imageReader;
-        this.vectorStore = vectorStore;
+        this.productService = productService;
         this.analyzer = analyzer;
     }
 
@@ -32,8 +32,6 @@ public sealed class CheckCommand : ICommandHandler
 
     public async ValueTask ExecuteAsync(CommandContext context)
     {
-        ArgumentNullException.ThrowIfNull(context);
-
         if (string.IsNullOrWhiteSpace(FilePath) || !File.Exists(FilePath))
         {
             await Console.Error.WriteLineAsync($"Image file not found: {FilePath}").ConfigureAwait(false);
@@ -60,7 +58,7 @@ public sealed class CheckCommand : ICommandHandler
         {
             ct.ThrowIfCancellationRequested();
 
-            var candidates = await vectorStore.SearchAsync(item.Name, Top, ct).ConfigureAwait(false);
+            var candidates = await productService.SearchAsync(item.Name, Top, ct).ConfigureAwait(false);
             var result = await analyzer.AnalyzeAsync(item, candidates, ct).ConfigureAwait(false);
 
             Console.WriteLine(
