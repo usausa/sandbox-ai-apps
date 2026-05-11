@@ -10,4 +10,5 @@
     <File Path="README.md" />
     <File Path="FlyerChecker.sln.DotSettings" />
   </Folder>
+  <Project Path="FlyerChecker/FlyerChecker.csproj" Id="9fa73f78-b40a-4b24-b427-b897f5dccb77" />
 </Solution>
