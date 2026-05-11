@@ -109,6 +109,9 @@ var app = builder.Build();
 var uploadDir = Path.GetFullPath(flyerCheckerSettings.UploadPath);
 Directory.CreateDirectory(uploadDir);
 
+// Ensure AI Search index exists
+await app.Services.GetRequiredService<ProductService>().EnsureIndexAsync();
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadDir),
@@ -127,4 +130,4 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+await app.RunAsync();
