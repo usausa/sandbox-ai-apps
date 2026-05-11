@@ -7,15 +7,13 @@ using CsvHelper.Configuration;
 
 using FlyerChecker.Models;
 
-/// <summary>CSVファイルからマスタレコードを読み込むローダー。</summary>
+// CSVファイルからマスタレコードを読み込むローダー
 public sealed class MasterCsvLoader
 {
     public async IAsyncEnumerable<MasterRecord> LoadAsync(
         Stream stream,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,

@@ -7,25 +7,21 @@ using Microsoft.Extensions.Logging;
 // チラシ画像の広告価格チェックを一括実行するサービス
 public sealed class FlyerCheckerService
 {
+    private readonly ILogger<FlyerCheckerService> log;
     private readonly FlyerImageReader flyerImageReader;
     private readonly ProductService productService;
     private readonly PriceDifferenceAnalyzer priceDifferenceAnalyzer;
-    private readonly ILogger<FlyerCheckerService> logger;
 
     public FlyerCheckerService(
+        ILogger<FlyerCheckerService> log,
         FlyerImageReader flyerImageReader,
         ProductService productService,
-        PriceDifferenceAnalyzer priceDifferenceAnalyzer,
-        ILogger<FlyerCheckerService> logger)
+        PriceDifferenceAnalyzer priceDifferenceAnalyzer)
     {
-        ArgumentNullException.ThrowIfNull(flyerImageReader);
-        ArgumentNullException.ThrowIfNull(productService);
-        ArgumentNullException.ThrowIfNull(priceDifferenceAnalyzer);
-        ArgumentNullException.ThrowIfNull(logger);
+        this.log = log;
         this.flyerImageReader = flyerImageReader;
         this.productService = productService;
         this.priceDifferenceAnalyzer = priceDifferenceAnalyzer;
-        this.logger = logger;
     }
 
     // チラシ画像ファイルを解析し、商品毎の価格チェック結果をストリームで返す
@@ -35,27 +31,27 @@ public sealed class FlyerCheckerService
         double minScore = 0.75,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
-        logger.LogInformation("Flyer check started. filePath=[{FilePath}]", filePath);
+        log.InfoFlyerCheckStarted(filePath);
 
         var items = await flyerImageReader.ReadAsync(filePath, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Flyer items extracted. count=[{Count}]", items.Count);
+        log.InfoFlyerItemsExtracted(items.Count);
 
         foreach (var item in items)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var candidates = await productService.SearchAsync(item.Name, searchTop, minScore, cancellationToken).ConfigureAwait(false);
+            var candidates = await productService.SearchAsync(
+                item.Name,
+                searchTop,
+                minScore,
+                cancellationToken).ConfigureAwait(false);
             var result = await priceDifferenceAnalyzer.AnalyzeAsync(item, candidates, cancellationToken).ConfigureAwait(false);
 
-            logger.LogInformation(
-                "Checked item=[{Item}], flyerPrice=[{FlyerPrice}], masterName=[{MasterName}], masterPrice=[{MasterPrice}], diff=[{Diff}]",
-                item.Name, item.Price, result.MasterName, result.MasterPrice, result.Difference);
+            log.InfoCheckedItem(item.Name, item.Price, result.MasterName, result.MasterPrice, result.Difference);
 
             yield return result;
         }
 
-        logger.LogInformation("Flyer check completed. itemCount=[{Count}]", items.Count);
+        log.InfoFlyerCheckCompleted(items.Count);
     }
 }

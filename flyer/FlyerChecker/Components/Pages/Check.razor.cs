@@ -7,19 +7,29 @@ using FlyerChecker.Settings;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 public sealed partial class Check : ComponentBase, IDisposable
 {
     private static readonly string[] SupportedContentTypes = ["image/png", "image/jpeg", "image/webp"];
 
-    [Inject] private FlyerCheckerService CheckerService { get; set; } = default!;
-    [Inject] private ProductService ProductService { get; set; } = default!;
-    [Inject] private MasterCsvLoader CsvLoader { get; set; } = default!;
-    [Inject] private FlyerCheckerSettings Settings { get; set; } = default!;
-    [Inject] private IJSRuntime JS { get; set; } = default!;
-    [Inject] private ILogger<Check> Logger { get; set; } = default!;
+    [Inject]
+    private FlyerCheckerService CheckerService { get; set; } = default!;
+
+    [Inject]
+    private ProductService ProductService { get; set; } = default!;
+
+    [Inject]
+    private MasterCsvLoader CsvLoader { get; set; } = default!;
+
+    [Inject]
+    private FlyerCheckerSettings Settings { get; set; } = default!;
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    [Inject]
+    private ILogger<Check> Logger { get; set; } = default!;
 
     private ElementReference dropZoneRef;
     private bool isDragOver;
@@ -44,7 +54,10 @@ public sealed partial class Check : ComponentBase, IDisposable
 
     private async Task OnImageFileChangedAsync(InputFileChangeEventArgs e)
     {
-        if (isBusy) return;
+        if (isBusy)
+        {
+            return;
+        }
 
         var file = e.File;
         var contentType = NormalizeContentType(file.ContentType, file.Name);
@@ -73,7 +86,7 @@ public sealed partial class Check : ComponentBase, IDisposable
                 await src.CopyToAsync(dest, cts.Token);
             }
 
-            Logger.LogInformation("Flyer image uploaded. path=[{Path}]", savedPath);
+            Logger.InfoImageUploaded(savedPath);
 
             // 保存完了後にUIを更新
             isBusy = true;
@@ -124,7 +137,10 @@ public sealed partial class Check : ComponentBase, IDisposable
 
     private async Task OnCsvFileChangedAsync(InputFileChangeEventArgs e)
     {
-        if (isBusy) return;
+        if (isBusy)
+        {
+            return;
+        }
 
         isBusy = true;
         errorMessage = null;
@@ -133,6 +149,7 @@ public sealed partial class Check : ComponentBase, IDisposable
 
         cts = new CancellationTokenSource();
 
+#pragma warning disable CA1031
         try
         {
             Logger.InfoCsvLoadStarted();
@@ -173,6 +190,7 @@ public sealed partial class Check : ComponentBase, IDisposable
             cts = null;
             await InvokeAsync(StateHasChanged);
         }
+#pragma warning restore CA1031
     }
 
     private Task CancelAsync()
@@ -196,12 +214,12 @@ public sealed partial class Check : ComponentBase, IDisposable
             return contentType;
         }
 
-        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        var ext = Path.GetExtension(fileName).ToUpperInvariant();
         return ext switch
         {
-            ".png" => "image/png",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".webp" => "image/webp",
+            ".PNG" => "image/png",
+            ".JPG" or ".JPEG" => "image/jpeg",
+            ".WEBP" => "image/webp",
             _ => null
         };
     }

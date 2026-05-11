@@ -8,23 +8,19 @@ using FlyerChecker.Models;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-/// <summary>チラシ商品とマスタ候補の価格差異を分析するサービス。</summary>
+// チラシ商品とマスタ候補の価格差異を分析するサービス
 public sealed class PriceDifferenceAnalyzer
 {
+    private readonly ILogger<PriceDifferenceAnalyzer> log;
     private readonly string systemPrompt;
     private readonly IChatClient chatClient;
-    private readonly ILogger<PriceDifferenceAnalyzer> logger;
 
     public PriceDifferenceAnalyzer(
-        IChatClient chatClient,
-        ILogger<PriceDifferenceAnalyzer> logger,
-        IConfiguration configuration)
+        ILogger<PriceDifferenceAnalyzer> log,
+        IChatClient chatClient)
     {
-        ArgumentNullException.ThrowIfNull(chatClient);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(configuration);
+        this.log = log;
         this.chatClient = chatClient;
-        this.logger = logger;
 
         var promptPath = Path.Combine(AppContext.BaseDirectory, "Prompts", "price_analyzer.txt");
         systemPrompt = File.ReadAllText(promptPath).Trim();
@@ -57,13 +53,13 @@ public sealed class PriceDifferenceAnalyzer
         };
 
         var response = await chatClient.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
-        var text = response.Text ?? string.Empty;
-        logger.LogDebug("Diff LLM response: {Response}", text);
+        var text = response.Text;
+        log.DebugDiffLlmResponse(text);
 
         return Parse(flyerItem, text);
     }
 
-    private static string BuildUserPrompt(FlyerItem item, IReadOnlyList<ProductSearchResult> candidates)
+    private static string BuildUserPrompt(FlyerItem item, IEnumerable<ProductSearchResult> candidates)
     {
         var sb = new StringBuilder();
         sb.Append("チラシ商品: 商品名=\"").Append(item.Name).Append("\", 価格=").Append(item.Price).AppendLine("円");

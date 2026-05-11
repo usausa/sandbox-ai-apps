@@ -7,23 +7,19 @@ using FlyerChecker.Models;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-/// <summary>チラシ画像から商品名と価格を抽出するサービス。</summary>
+// チラシ画像から商品名と価格を抽出するサービス
 public sealed class FlyerImageReader
 {
+    private readonly ILogger<FlyerImageReader> log;
     private readonly string systemPrompt;
     private readonly IChatClient chatClient;
-    private readonly ILogger<FlyerImageReader> logger;
 
     public FlyerImageReader(
-        IChatClient chatClient,
-        ILogger<FlyerImageReader> logger,
-        IConfiguration configuration)
+        ILogger<FlyerImageReader> log,
+        IChatClient chatClient)
     {
-        ArgumentNullException.ThrowIfNull(chatClient);
-        ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(configuration);
+        this.log = log;
         this.chatClient = chatClient;
-        this.logger = logger;
 
         var promptPath = Path.Combine(AppContext.BaseDirectory, "Prompts", "flyer_reader.txt");
         systemPrompt = File.ReadAllText(promptPath).Trim();
@@ -34,8 +30,6 @@ public sealed class FlyerImageReader
         string filePath,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
         var bytes = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
         var mediaType = GuessMediaType(filePath);
 
@@ -65,12 +59,12 @@ public sealed class FlyerImageReader
 
         var response = await chatClient.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
         var text = response.Text;
-        logger.LogDebug("Flyer LLM response: {Response}", text);
+        log.DebugFlyerLlmResponse(text);
 
         return ParseItems(text);
     }
 
-    private static IReadOnlyList<FlyerItem> ParseItems(string json)
+    private static List<FlyerItem> ParseItems(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -131,12 +125,12 @@ public sealed class FlyerImageReader
     }
 
     public static string GuessMediaType(string fileName) =>
-        Path.GetExtension(fileName).ToLowerInvariant() switch
+        Path.GetExtension(fileName).ToUpperInvariant() switch
         {
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
+            ".PNG" => "image/png",
+            ".GIF" => "image/gif",
+            ".WEBP" => "image/webp",
+            ".BMP" => "image/bmp",
             _ => "image/jpeg"
         };
 }

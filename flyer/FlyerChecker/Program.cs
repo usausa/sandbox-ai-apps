@@ -49,7 +49,6 @@ builder.Services.AddRazorComponents()
 var flyerCheckerSettings = builder.Configuration.GetSection("FlyerChecker").Get<FlyerCheckerSettings>() ?? new FlyerCheckerSettings();
 var foundrySettings = builder.Configuration.GetSection("Foundry").Get<FoundrySettings>() ?? new FoundrySettings();
 var searchSettings = builder.Configuration.GetSection("AzureAISearch").Get<AzureAISearchSettings>() ?? new AzureAISearchSettings();
-
 builder.Services.AddSingleton(flyerCheckerSettings);
 builder.Services.AddSingleton(foundrySettings);
 builder.Services.AddSingleton(searchSettings);
@@ -63,12 +62,14 @@ builder.Services.AddSingleton<AzureOpenAIClient>(_ =>
         : new AzureOpenAIClient(endpoint, new ApiKeyCredential(foundrySettings.ApiKey));
 });
 
+// Chat client
 builder.Services.AddSingleton<IChatClient>(sp =>
 {
     var client = sp.GetRequiredService<AzureOpenAIClient>();
     return client.GetChatClient(foundrySettings.ChatDeployment).AsIChatClient();
 });
 
+// Embedding generator
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var client = sp.GetRequiredService<AzureOpenAIClient>();
@@ -84,6 +85,7 @@ builder.Services.AddSingleton<SearchIndexClient>(_ =>
         : new SearchIndexClient(endpoint, new AzureKeyCredential(searchSettings.ApiKey));
 });
 
+// Vector collection
 builder.Services.AddSingleton<VectorStoreCollection<string, ProductRecord>>(sp =>
 {
     var indexClient = sp.GetRequiredService<SearchIndexClient>();

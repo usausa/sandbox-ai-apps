@@ -3,38 +3,41 @@ namespace FlyerChecker.Services;
 using FlyerChecker.Models;
 
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.VectorData;
 
-/// <summary>Azure AI Search のベクトルコレクションを使って商品の登録・あいまい検索を行うサービス。</summary>
+// Azure AI Search のベクトルコレクションを使って商品の登録・あいまい検索を行うサービス
 public sealed class ProductService
 {
+    private readonly ILogger<ProductService> log;
     private readonly VectorStoreCollection<string, ProductRecord> collection;
     private readonly IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator;
 
     public ProductService(
+        ILogger<ProductService> log,
         VectorStoreCollection<string, ProductRecord> collection,
         IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator)
     {
-        ArgumentNullException.ThrowIfNull(collection);
-        ArgumentNullException.ThrowIfNull(embeddingGenerator);
+        this.log = log;
         this.collection = collection;
         this.embeddingGenerator = embeddingGenerator;
     }
 
-    /// <summary>インデックスが存在しない場合に作成する。</summary>
+    // インデックスが存在しない場合に作成する
     public async Task EnsureIndexAsync(CancellationToken cancellationToken = default)
     {
         await collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>既存インデックスを削除して再作成する。</summary>
+    // 既存インデックスを削除して再作成する
     public async Task RecreateIndexAsync(CancellationToken cancellationToken = default)
     {
         await collection.EnsureCollectionDeletedAsync(cancellationToken).ConfigureAwait(false);
         await collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
+        log.InfoIndexRecreated();
     }
 
-    /// <summary>商品を登録（または更新）する。</summary>
+    // 商品を登録（または更新）する
     public async Task RegisterProductAsync(
         string id,
         string name,
@@ -42,29 +45,27 @@ public sealed class ProductService
         string? category = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        var result = await embeddingGenerator.GenerateAsync([name], cancellationToken: cancellationToken).ConfigureAwait(false);
+        var result = await embeddingGenerator.GenerateAsync(
+            [name],
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         var embedding = result[0].Vector;
 
-        await collection.UpsertAsync(new ProductRecord
-        {
-            Id = id,
-            Name = name,
-            Price = price,
-            Category = category,
-            NameEmbedding = embedding
-        }, cancellationToken).ConfigureAwait(false);
+        await collection.UpsertAsync(
+            new ProductRecord
+            {
+                Id = id,
+                Name = name,
+                Price = price,
+                Category = category,
+                NameEmbedding = embedding
+            },
+            cancellationToken).ConfigureAwait(false);
+        log.InfoProductRegistered(id, name);
     }
-
-    /// <summary>複数商品を一括登録し、登録件数を返す。</summary>
     public async Task<int> RegisterProductsAsync(
         IAsyncEnumerable<MasterRecord> records,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(records);
-
         var count = 0;
         await foreach (var record in records.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
@@ -75,17 +76,16 @@ public sealed class ProductService
         return count;
     }
 
-    /// <summary>クエリ文字列でベクトル検索を行い、上位 <paramref name="top"/> 件を返す。</summary>
+    // クエリ文字列でベクトル検索を行い、上位 top 件を返す
     public async Task<IReadOnlyList<ProductSearchResult>> SearchAsync(
         string query,
         int top = 5,
         double minScore = 0.75,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(query);
-        ArgumentOutOfRangeException.ThrowIfLessThan(top, 1);
-
-        var queryResult = await embeddingGenerator.GenerateAsync([query], cancellationToken: cancellationToken).ConfigureAwait(false);
+        var queryResult = await embeddingGenerator.GenerateAsync(
+            [query],
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         var queryEmbedding = queryResult[0].Vector;
 
         var results = new List<ProductSearchResult>(top);
