@@ -1,0 +1,12 @@
+namespace FlyerChecker.Models;
+
+public sealed record MasterRecord
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string Name { get; set; } = string.Empty;
+
+    public int Price { get; set; }
+
+    public string? Category { get; set; }
+}

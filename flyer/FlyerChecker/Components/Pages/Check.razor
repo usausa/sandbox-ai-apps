@@ -1,0 +1,147 @@
+@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>FlyerChecker</PageTitle>
+
+<div class="fc">
+
+    <!-- Action bar: CSV upload -->
+    <div class="fc-actions">
+        <label class="btn-se-ghost" title="商品マスタCSVをAI Searchに登録">
+            <i class="bi bi-database-add"></i>
+            <span>マスタCSV登録</span>
+            <InputFile OnChange="OnCsvFileChangedAsync" accept=".csv" class="fc-drop-input" style="display:none" />
+        </label>
+        @if (previewUrl is not null && !isBusy)
+        {
+            <button type="button" class="btn-se-ghost" @onclick="ClearAsync">
+                <i class="bi bi-trash3"></i>
+                <span>クリア</span>
+            </button>
+        }
+        @if (isBusy)
+        {
+            <button type="button" class="btn-se-ghost" @onclick="CancelAsync">
+                <i class="bi bi-stop-circle"></i>
+                <span>キャンセル</span>
+            </button>
+        }
+    </div>
+
+    <!-- Error -->
+    @if (errorMessage is not null)
+    {
+        <div class="fb-error-toast">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>@errorMessage</span>
+            <button type="button" class="btn-se-icon" @onclick="() => errorMessage = null"><i class="bi bi-x"></i></button>
+        </div>
+    }
+
+    <!-- Progress -->
+    @if (isBusy)
+    {
+        <div class="ig-progress">
+            <div class="spinner-se spinner-se-lg" role="status"></div>
+            <span class="ig-progress-message">@progressMessage</span>
+        </div>
+    }
+
+    <div class="fc-content">
+
+        <!-- Drop zone -->
+        @if (previewUrl is null)
+        {
+        <div class="fc-drop-zone @(isDragOver ? "drag-over" : "") @(isBusy ? "drop-zone-disabled" : "")"
+             @ref="dropZoneRef"
+             @ondragenter="OnDragEnter" @ondragleave="OnDragLeave"
+             @ondragover:preventDefault
+             @ondrop:preventDefault @ondrop="OnDrop">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <span>チラシ画像をここにドラッグ＆ドロップ</span>
+            <span style="font-size:0.78rem; color: var(--se-text-muted)">PNG / JPEG / WEBP</span>
+            <InputFile OnChange="OnImageFileChangedAsync" accept="image/png,image/jpeg,image/webp" class="fc-drop-input" disabled="@isBusy" />
+        </div>
+        }
+
+        <!-- Uploaded image preview -->
+        @if (previewUrl is not null)
+        {
+            <div class="fc-preview">
+                <img src="@previewUrl" alt="チラシプレビュー" />
+            </div>
+        }
+
+        <!-- Results -->
+        @if (results.Count > 0)
+        {
+            <div class="fc-results-header">
+                <i class="bi bi-list-check"></i>
+                <span>チェック結果（@results.Count 件）</span>
+            </div>
+            <div class="fc-results">
+                <table class="fc-result-table">
+                    <thead>
+                        <tr>
+                            <th>チラシ商品名</th>
+                            <th class="fc-col-price">チラシ価格</th>
+                            <th>マスタ商品名</th>
+                            <th class="fc-col-price">マスタ価格</th>
+                            <th class="fc-col-diff">差額</th>
+                            <th class="fc-col-comment">コメント</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in results)
+                        {
+                            <tr>
+                                <td>@item.FlyerName</td>
+                                <td class="fc-col-price">¥@item.FlyerPrice.ToString("N0")</td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(item.MasterName))
+                                    {
+                                        <span class="fc-result-no-match">⚠️ 一致なし</span>
+                                    }
+                                    else
+                                    {
+                                        @item.MasterName
+                                    }
+                                </td>
+                                <td class="fc-col-price">
+                                    @if (item.MasterPrice > 0)
+                                    {
+                                        <span>¥@item.MasterPrice.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fc-result-no-match">-</span>
+                                    }
+                                </td>
+                                <td class="fc-col-diff">
+                                    @if (string.IsNullOrEmpty(item.MasterName))
+                                    {
+                                        <span class="fc-result-no-match">-</span>
+                                    }
+                                    else if (item.Difference == 0)
+                                    {
+                                        <span class="fc-result-diff-ok">✅ 一致</span>
+                                    }
+                                    else if (item.Difference > 0)
+                                    {
+                                        <span class="fc-result-diff-warn">❌ +¥@item.Difference.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fc-result-diff-warn">⚠️ ¥@item.Difference.ToString("N0")</span>
+                                    }
+                                </td>
+                                <td class="fc-col-comment" title="@item.Comment">@item.Comment</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+    </div>
+</div>
