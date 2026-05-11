@@ -23,12 +23,6 @@ public sealed class ProductService
         this.embeddingGenerator = embeddingGenerator;
     }
 
-    // インデックスが存在しない場合に作成する
-    public async Task EnsureIndexAsync(CancellationToken cancellationToken = default)
-    {
-        await collection.EnsureCollectionExistsAsync(cancellationToken).ConfigureAwait(false);
-    }
-
     // 既存インデックスを削除して再作成する
     public async Task RecreateIndexAsync(CancellationToken cancellationToken = default)
     {
@@ -37,7 +31,7 @@ public sealed class ProductService
         log.InfoIndexRecreated();
     }
 
-    // 商品を登録（または更新）する
+    // 商品を登録(または更新)する
     public async Task RegisterProductAsync(
         string id,
         string name,

@@ -63,7 +63,7 @@ public sealed class PriceDifferenceAnalyzer
     {
         var sb = new StringBuilder();
         sb.Append("チラシ商品: 商品名=\"").Append(item.Name).Append("\", 価格=").Append(item.Price).AppendLine("円");
-        sb.AppendLine("マスタ候補（similarity_scoreの降順）:");
+        sb.AppendLine("マスタ候補(similarity_scoreの降順):");
         foreach (var c in candidates)
         {
             sb.Append("- 商品名=\"").Append(c.Name)
