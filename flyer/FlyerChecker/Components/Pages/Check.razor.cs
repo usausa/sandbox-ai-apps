@@ -40,7 +40,7 @@ public sealed partial class Check : ComponentBase, IDisposable
 
     private void OnDragEnter() => isDragOver = true;
     private void OnDragLeave() => isDragOver = false;
-    private void OnDrop(DragEventArgs _) => isDragOver = false;
+    private void OnDrop(DragEventArgs args) => isDragOver = false;
 
     private async Task OnImageFileChangedAsync(InputFileChangeEventArgs e)
     {
@@ -56,6 +56,7 @@ public sealed partial class Check : ComponentBase, IDisposable
 
         cts = new CancellationTokenSource();
 
+#pragma warning disable CA1031
         try
         {
             // ファイルをサーバーに保存 (StateHasChanged前に完了させる)
@@ -118,6 +119,7 @@ public sealed partial class Check : ComponentBase, IDisposable
             cts = null;
             await InvokeAsync(StateHasChanged);
         }
+#pragma warning restore CA1031
     }
 
     private async Task OnCsvFileChangedAsync(InputFileChangeEventArgs e)

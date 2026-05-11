@@ -4,7 +4,7 @@ using FlyerChecker.Models;
 
 using Microsoft.Extensions.Logging;
 
-/// <summary>チラシ画像の広告価格チェックを一括実行するサービス。</summary>
+// チラシ画像の広告価格チェックを一括実行するサービス
 public sealed class FlyerCheckerService
 {
     private readonly FlyerImageReader flyerImageReader;
@@ -28,7 +28,7 @@ public sealed class FlyerCheckerService
         this.logger = logger;
     }
 
-    /// <summary>チラシ画像ファイルを解析し、商品毎の価格チェック結果をストリームで返す。</summary>
+    // チラシ画像ファイルを解析し、商品毎の価格チェック結果をストリームで返す
     public async IAsyncEnumerable<PriceCheckResult> CheckAsync(
         string filePath,
         int searchTop = 5,

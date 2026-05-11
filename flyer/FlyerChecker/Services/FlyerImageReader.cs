@@ -29,7 +29,7 @@ public sealed class FlyerImageReader
         systemPrompt = File.ReadAllText(promptPath).Trim();
     }
 
-    /// <summary>サーバー上のファイルパスから読み込む。</summary>
+    // サーバー上のファイルパスから読み込む
     public async Task<IReadOnlyList<FlyerItem>> ReadAsync(
         string filePath,
         CancellationToken cancellationToken = default)
@@ -64,7 +64,7 @@ public sealed class FlyerImageReader
         };
 
         var response = await chatClient.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
-        var text = response.Text ?? string.Empty;
+        var text = response.Text;
         logger.LogDebug("Flyer LLM response: {Response}", text);
 
         return ParseItems(text);
