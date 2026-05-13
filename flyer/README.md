@@ -2,18 +2,18 @@
 
 チラシ画像と商品マスタを比較して、広告価格の差異をチェックするBlazor Serverアプリケーション。
 
-<img src="Document/image.png" title="Image" width="50%">
+<img src="Document/image.gif" title="Image" width="50%">
 
 ## アーキテクチャ
 
 ```
 チラシ画像 (ブラウザD&D)
     ↓
-Microsoft Foundry ── 商品名・価格を JSON 抽出
+Microsoft Foundry - 商品名・価格を JSON 抽出
     ↓
-Azure AI Search ── 商品名でベクトル類似検索
+Azure AI Search - 商品名でベクトル類似検索
     ↓
-Microsoft Foundry ── マスタ候補と照合・価格差を判定
+Microsoft Foundry - マスタ候補と照合・価格差を判定
     ↓
 結果を画面に表示
 ```
