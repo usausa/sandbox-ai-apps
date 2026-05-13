@@ -31,6 +31,7 @@ public sealed partial class Check : ComponentBase, IDisposable
     [Inject]
     private ILogger<Check> Logger { get; set; } = default!;
 
+    private int inputFileKey;
     private ElementReference dropZoneRef;
     private bool isDragOver;
     private bool isBusy;
@@ -42,10 +43,7 @@ public sealed partial class Check : ComponentBase, IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("initDropZone", dropZoneRef);
-        }
+        await JS.InvokeVoidAsync("initDropZone", dropZoneRef);
     }
 
     private void OnDragEnter() => isDragOver = true;
@@ -204,6 +202,7 @@ public sealed partial class Check : ComponentBase, IDisposable
         previewUrl = null;
         results.Clear();
         errorMessage = null;
+        inputFileKey++;
         return Task.CompletedTask;
     }
 

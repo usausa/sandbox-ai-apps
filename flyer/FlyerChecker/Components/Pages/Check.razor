@@ -60,7 +60,7 @@
             <i class="bi bi-cloud-arrow-up"></i>
             <span>チラシ画像をここにドラッグ＆ドロップ</span>
             <span style="font-size:0.78rem; color: var(--se-text-muted)">PNG / JPEG / WEBP</span>
-            <InputFile OnChange="OnImageFileChangedAsync" accept="image/png,image/jpeg,image/webp" class="fc-drop-input" disabled="@isBusy" />
+            <InputFile @key="inputFileKey" OnChange="OnImageFileChangedAsync" accept="image/png,image/jpeg,image/webp" class="fc-drop-input" disabled="@isBusy" />
         </div>
         }
 
