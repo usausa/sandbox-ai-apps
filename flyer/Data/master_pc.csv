@@ -1,0 +1,81 @@
+Id,Name,Price,Category
+1,Lenovo Ideapad S340 81NC00BWJP,49800,ノートPC
+2,NEC LAVIE Smart NS 15.6型液晶搭載モデル,59800,ノートPC
+3,Lenovo Ideapad 81DE0389JP,79800,ノートPC
+4,NEC LAVIE Smart NS Celeron搭載モデル,39800,ノートPC
+5,LG gram 14Z90N-VR31J,99800,ノートPC
+6,MSI GF63 10SCXR-050JP,114800,ノートPC
+7,Prestige-14 A10SC-165JP,149800,ノートPC
+8,AMD Ryzen 5 3400G搭載モデル,79800,デスクトップPC
+9,AMD Ryzen 3 3200G搭載モデル,69800,デスクトップPC
+10,BUFFALO USB外付けハードディスク 4TB,7980,ストレージ
+11,BUFFALO SSD 480GB,7980,ストレージ
+12,BUFFALO HD-PLF1.0U3-BB,3980,ストレージ
+13,GREEN HOUSE 21.5型液晶モニター,13800,モニター
+14,Canon PIXUS TS5330 BK,9980,プリンター
+15,GREEN HOUSE GH-UF3Aシリーズ,1980,USBハブ
+16,ASUS TUF Gaming GeForce GTX1660S,27980,グラフィックカード
+17,GAMDIAS Artemis E1,2980,ゲーミングデバイス
+18,Logicool G640r,2980,ゲーミングデバイス
+19,HIDISC microSDHCカード 128GB,1980,メモリカード
+20,USB3.0メモリ 64GB,899,USBメモリ
+21,USB3.0メモリ 128GB,1980,USBメモリ
+22,Apple MacBook Air M2,148800,ノートPC
+23,Apple MacBook Pro 14インチ M3,248800,ノートPC
+24,Dell XPS 13 9310,138000,ノートPC
+25,HP Spectre x360 14,158000,ノートPC
+26,ASUS ZenBook 14 UX425,89800,ノートPC
+27,Panasonic Let's note CF-SV,178000,ノートPC
+28,Dynabook X6,94800,ノートPC
+29,Fujitsu LIFEBOOK WU-X/H1,129800,ノートPC
+30,Microsoft Surface Laptop 5,148400,ノートPC
+31,Razer Blade 15,268000,ゲーミングPC
+32,ASUS ROG Zephyrus G14,178000,ゲーミングPC
+33,MSI Katana GF66,98000,ゲーミングPC
+34,Lenovo Legion 5,124800,ゲーミングPC
+35,Apple Mac mini M2,72800,デスクトップPC
+36,Dell Inspiron 3910,69800,デスクトップPC
+37,HP Pavilion Desktop TP01,79800,デスクトップPC
+38,ASUS VivoPC M241,64800,デスクトップPC
+39,Intel NUC 12 Pro,89800,デスクトップPC
+40,Samsung 870 EVO 1TB SSD,12800,ストレージ
+41,WD Blue 2TB HDD,5980,ストレージ
+42,Seagate BarraCuda 4TB,8980,ストレージ
+43,Samsung T7 ポータブルSSD 1TB,11800,ストレージ
+44,BUFFALO NAS 2TB,18800,ストレージ
+45,IODATA 外付けHDD 2TB,6980,ストレージ
+46,BenQ GW2780 27型モニター,19800,モニター
+47,ASUS ProArt PA278QV 27型,38800,モニター
+48,Dell U2722D 27型4Kモニター,48800,モニター
+49,LG 27UK850-W 27型4Kモニター,42800,モニター
+50,EIZO FlexScan EV2480,42000,モニター
+51,Epson EW-M754T,24800,プリンター
+52,Brother MFC-J6983CDW,29800,プリンター
+53,Canon PIXUS TR153,9480,プリンター
+54,HP OfficeJet Pro 9010,14800,プリンター
+55,Logicool MX Master 3,9980,マウス
+56,Logicool G PRO X SUPERLIGHT,14800,ゲーミングデバイス
+57,Razer DeathAdder V3,8980,ゲーミングデバイス
+58,HHKB Professional HYBRID,35200,キーボード
+59,Logicool MX Keys,12980,キーボード
+60,Logicool G PRO X キーボード,12980,ゲーミングデバイス
+61,FILCO Majestouch 2,12800,キーボード
+62,ELECOM TK-FBP100,3980,キーボード
+63,Apple Magic Keyboard,11800,キーボード
+64,NVIDIA GeForce RTX 4070,79800,グラフィックカード
+65,NVIDIA GeForce RTX 3060,44800,グラフィックカード
+66,AMD Radeon RX 6600 XT,34800,グラフィックカード
+67,ASUS DUAL-RX6700XT,54800,グラフィックカード
+68,SanDisk Extreme microSD 256GB,4980,メモリカード
+69,Samsung PRO Plus microSD 512GB,7980,メモリカード
+70,Transcend microSDXC 128GB,1480,メモリカード
+71,Logicool C920n ウェブカメラ,8980,ウェブカメラ
+72,ELECOM UCAM-C750FBBK,4980,ウェブカメラ
+73,Anker PowerCore 20000,4480,モバイルバッテリー
+74,ELECOM DE-M05L-10000,2980,モバイルバッテリー
+75,Anker 65W USB-C急速充電器,2980,充電器
+76,BUFFALO USB-C Hub 7-in-1,4980,USBハブ
+77,Anker PowerExpand 8-in-1,6980,USBハブ
+78,TP-Link Archer AX3000,9980,ルーター
+79,BUFFALO WSR-3200AX4S,12800,ルーター
+80,Logicool MK295,3480,キーボード・マウスセット
