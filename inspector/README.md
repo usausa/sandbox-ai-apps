@@ -2,7 +2,7 @@
 
 電気の調査員が、実際には顧客を訪問せずに調査値を入力していないかを、30日分の CSV から判定する Blazor Server アプリケーションです。  
 
-<img src="Document/image.gif" title="Image" width="50%">
+<img src="Document/image.png" title="Image" width="50%">
 
 ## アーキテクチャ
 
