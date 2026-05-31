@@ -429,3 +429,4 @@ desktop.ini
 __*
 /AuthServer/Data/AuthServer.db
 /flyer/Flyer/Properties/launchSettings.json
+/.playwright-mcp
