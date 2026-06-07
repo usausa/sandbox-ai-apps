@@ -51,17 +51,18 @@ public sealed class InspectionFraudAnalyzer
                 featureSummary.CustomerCount,
                 featureSummary.StartDate,
                 featureSummary.EndDate,
-                featureSummary.MeanVoltage,
-                featureSummary.StandardDeviation
+                featureSummary.MeanCurrent,
+                featureSummary.StandardDeviation,
+                featureSummary.NearDefaultRatio
             },
-            customerProfiles = featureSummary.CustomerProfiles,
+            valueDistribution = featureSummary.ValueDistribution,
             dailySummaries = featureSummary.DailySummaries,
             repeatedDailyTemplates = featureSummary.RepeatedDailyTemplates,
             rawRows = records.Select(x => new
             {
                 x.InvestigationDate,
                 x.CustomerId,
-                x.Voltage
+                x.Current
             })
         };
 
@@ -91,14 +92,14 @@ public sealed class InspectionFraudAnalyzer
 
         return
             """
-            以下は担当者1名分の30日調査CSVを要約したものです。
-            顧客ごとの平均電圧は多少異なるため、顧客間の差だけでは不正と判断しないでください。
+            以下は調査員1名分の漏れ電流(mA)巡回調査CSVを要約したものです。
+            各調査日は別々の顧客を巡回しており、合格基準は「漏れ電流 1mA 未満」です。
+            漏れ電流は設備ごとに自然なばらつきがあるため、値が散らばっているだけでは不正と判断しないでください。
             ただし次の特徴は強い不正シグナルです:
-            - 同じ日に複数顧客で同一電圧が多発する
-            - 100.0V、99.9V、100.1Vのような既定値を機械的に使い回している
-            - 顧客ごとの基準値からのズレ方が不自然に揃っている
-            - 日ごとのテンプレートが完全一致で再登場する
-            - 0.1V刻みの階段状パターンや、説明しづらい規則性がある
+            - 同じ日に複数顧客で同一の電流値が多発する(日内のばらつきが不自然に小さい)
+            - 0.97mA のような 1mA 直下の既定値が不自然に集中する
+            - 日ごとの値の並び(顧客ID非依存)が複数日で完全一致で再登場する
+            - 0.01mA刻みの階段状パターンや、説明しづらい規則性がある
 
             JSONのみで回答してください。
 

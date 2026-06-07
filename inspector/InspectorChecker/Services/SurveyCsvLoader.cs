@@ -38,11 +38,11 @@ public sealed class SurveyCsvLoader
 
             var investigationDate = csv.GetField("InvestigationDate") ?? string.Empty;
             var customerId = csv.GetField("CustomerId") ?? string.Empty;
-            var voltageText = csv.GetField("Voltage") ?? string.Empty;
+            var currentText = csv.GetField("Current") ?? string.Empty;
 
-            if (!double.TryParse(voltageText, CultureInfo.InvariantCulture, out var voltage))
+            if (!double.TryParse(currentText, CultureInfo.InvariantCulture, out var current))
             {
-                throw new FormatException($"Voltage の形式が不正です: {voltageText}");
+                throw new FormatException($"Current の形式が不正です: {currentText}");
             }
 
             if (!DateOnly.TryParse(investigationDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
@@ -55,15 +55,15 @@ public sealed class SurveyCsvLoader
                 throw new FormatException("CustomerId が空の行があります。");
             }
 
-            if (double.IsNaN(voltage) || voltage <= 0)
+            if (double.IsNaN(current) || current <= 0)
             {
-                throw new FormatException($"Voltage が不正です: {voltage}");
+                throw new FormatException($"Current が不正です: {current}");
             }
 
             records.Add(new SurveyRecord(
                 date,
                 customerId.Trim(),
-                Math.Round(voltage, 1),
+                Math.Round(current, 2),
                 sequence));
 
             sequence++;

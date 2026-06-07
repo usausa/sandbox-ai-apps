@@ -1,9 +1,15 @@
 namespace InspectorChecker.Services;
 
+using System.Globalization;
+
 using InspectorChecker.Models;
 
 public sealed class InspectionFeatureSummaryBuilder
 {
+    // 漏れ電流の合格基準は 1mA 未満。不正入力は 1mA 直下の既定値 (0.97mA 付近) に張り付きやすい。
+    private const double DefaultCurrent = 0.97;
+    private const double NearDefaultTolerance = 0.02;
+
     public InspectionFeatureSummary Build(IReadOnlyList<SurveyRecord> records)
     {
         ArgumentNullException.ThrowIfNull(records);
@@ -18,27 +24,6 @@ public sealed class InspectionFeatureSummaryBuilder
             .ThenBy(x => x.Sequence)
             .ToArray();
 
-        var customerProfiles = orderedRecords
-            .GroupBy(x => x.CustomerId, StringComparer.OrdinalIgnoreCase)
-            .Select(group =>
-            {
-                var voltages = group.Select(x => x.Voltage).ToArray();
-                return new CustomerVoltageProfile(
-                    group.Key,
-                    Round(voltages.Average()),
-                    Round(StandardDeviation(voltages)),
-                    Round(voltages.Min()),
-                    Round(voltages.Max()),
-                    Round(1 - (voltages.Distinct().Count() / (double)voltages.Length)));
-            })
-            .OrderBy(x => x.CustomerId, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        var averageByCustomer = customerProfiles.ToDictionary(
-            x => x.CustomerId,
-            x => x.AverageVoltage,
-            StringComparer.OrdinalIgnoreCase);
-
         var dailyDetails = orderedRecords
             .GroupBy(x => x.InvestigationDate)
             .Select(group =>
@@ -48,16 +33,17 @@ public sealed class InspectionFeatureSummaryBuilder
                     .ThenBy(x => x.Sequence)
                     .ToArray();
 
-                var voltages = dayRecords.Select(x => x.Voltage).ToArray();
-                var groupedByVoltage = dayRecords
-                    .GroupBy(x => x.Voltage)
+                var currents = dayRecords.Select(x => x.Current).ToArray();
+                var groupedByCurrent = dayRecords
+                    .GroupBy(x => x.Current)
                     .OrderByDescending(x => x.Count())
                     .ThenBy(x => x.Key)
                     .ToArray();
 
+                // 巡回型では顧客IDが日替わりのため、テンプレートは顧客ID非依存の「値の並び」で判定する。
                 var template = string.Join(
                     ", ",
-                    dayRecords.Select(x => $"{x.CustomerId}={x.Voltage:F1}V"));
+                    currents.OrderBy(x => x).Select(FormatCurrent));
 
                 return new DailyTemplateSnapshot(
                     group.Key,
@@ -66,23 +52,23 @@ public sealed class InspectionFeatureSummaryBuilder
                         group.Key,
                         dayRecords.Length,
                         dayRecords.Select(x => x.CustomerId).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
-                        Round(voltages.Average()),
-                        Round(voltages.Min()),
-                        Round(voltages.Max()),
-                        groupedByVoltage.Length,
-                        Round((dayRecords.Length - groupedByVoltage.Length) / (double)dayRecords.Length),
-                        Round(dayRecords.Count(x => IsRoundValue(x.Voltage)) / (double)dayRecords.Length),
-                        Round(dayRecords.Count(x => Math.Abs(x.Voltage - 100.0) <= 0.2) / (double)dayRecords.Length),
-                        Round(dayRecords.Average(x => Math.Abs(x.Voltage - averageByCustomer[x.CustomerId]))),
-                        $"{groupedByVoltage[0].Key:F1}V",
-                        groupedByVoltage[0].Count(),
+                        Round(currents.Average()),
+                        Round(currents.Min()),
+                        Round(currents.Max()),
+                        Round(StandardDeviation(currents)),
+                        groupedByCurrent.Length,
+                        Round((dayRecords.Length - groupedByCurrent.Length) / (double)dayRecords.Length),
+                        Round(dayRecords.Count(x => IsRoundValue(x.Current)) / (double)dayRecords.Length),
+                        Round(dayRecords.Count(x => IsNearDefault(x.Current)) / (double)dayRecords.Length),
+                        FormatCurrent(groupedByCurrent[0].Key),
+                        groupedByCurrent[0].Count(),
                         false));
             })
             .OrderBy(x => x.InvestigationDate)
             .ToArray();
 
         var repeatedTemplates = dailyDetails
-            .GroupBy(x => x.Template)
+            .GroupBy(x => x.Template, StringComparer.Ordinal)
             .Where(x => x.Count() > 1)
             .Select(x => new RepeatedDailyTemplate(
                 x.Key,
@@ -100,25 +86,42 @@ public sealed class InspectionFeatureSummaryBuilder
             .Select(x => x.Summary with { HasRepeatedTemplate = repeatedTemplateDates.Contains(x.InvestigationDate) })
             .ToArray();
 
-        var allVoltages = orderedRecords.Select(x => x.Voltage).ToArray();
+        var allCurrents = orderedRecords.Select(x => x.Current).ToArray();
+
+        var valueDistribution = orderedRecords
+            .GroupBy(x => x.Current)
+            .Select(group => new CurrentValueFrequency(
+                group.Key,
+                group.Count(),
+                Round(group.Count() / (double)orderedRecords.Length)))
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Current)
+            .ToArray();
 
         return new InspectionFeatureSummary(
             orderedRecords.Length,
-            customerProfiles.Length,
+            orderedRecords.Select(x => x.CustomerId).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
             orderedRecords[0].InvestigationDate,
             orderedRecords[^1].InvestigationDate,
-            Round(allVoltages.Average()),
-            Round(StandardDeviation(allVoltages)),
-            customerProfiles,
+            Round(allCurrents.Average()),
+            Round(StandardDeviation(allCurrents)),
+            Round(allCurrents.Count(IsNearDefault) / (double)allCurrents.Length),
+            valueDistribution,
             dailySummaries,
             repeatedTemplates);
     }
 
-    private static bool IsRoundValue(double voltage)
+    private static bool IsRoundValue(double current)
     {
-        var scaled = (int)Math.Round(voltage * 10, MidpointRounding.AwayFromZero);
+        var scaled = (int)Math.Round(current * 100, MidpointRounding.AwayFromZero);
         return scaled % 5 == 0;
     }
+
+    private static bool IsNearDefault(double current) =>
+        Math.Abs(current - DefaultCurrent) <= NearDefaultTolerance + 1e-9;
+
+    private static string FormatCurrent(double current) =>
+        current.ToString("F2", CultureInfo.InvariantCulture) + "mA";
 
     private static double StandardDeviation(double[] values)
     {

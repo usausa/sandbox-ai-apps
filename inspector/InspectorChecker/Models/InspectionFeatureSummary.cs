@@ -5,8 +5,9 @@ public sealed record InspectionFeatureSummary(
     int CustomerCount,
     DateOnly StartDate,
     DateOnly EndDate,
-    double MeanVoltage,
+    double MeanCurrent,
     double StandardDeviation,
-    IReadOnlyList<CustomerVoltageProfile> CustomerProfiles,
+    double NearDefaultRatio,
+    IReadOnlyList<CurrentValueFrequency> ValueDistribution,
     IReadOnlyList<DailyFeatureSummary> DailySummaries,
     IReadOnlyList<RepeatedDailyTemplate> RepeatedDailyTemplates);

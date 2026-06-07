@@ -61,13 +61,13 @@
                 <div class="ic-empty-icon">
                     <i class="bi bi-shield-exclamation"></i>
                 </div>
-                <h1>30日分の調査結果から不正入力パターンを検出</h1>
+                <h1>漏れ電流の巡回調査から不正入力パターンを検出</h1>
                 <p>
-                    CSVをアップロードすると、顧客ごとの平均電圧と日別の分布を先に整理し、
+                    CSVをアップロードすると、漏れ電流の値分布と日別の集中度を先に整理し、
                     その要約と生データを Foundry の LLM に渡して不正確率を判定します。
                 </p>
                 <div class="ic-empty-format">
-                    CSV列は <code>InvestigationDate,CustomerId,Voltage</code> です。
+                    CSV列は <code>InvestigationDate,CustomerId,Current</code> です。判定基準は漏れ電流 1mA 未満。
                 </div>
             </section>
 
@@ -170,8 +170,9 @@
                                         {
                                             <div class="ic-feature-stack">
                                                 <span>重複率 @FormatPercent(feature.DuplicateRatio)</span>
-                                                <span>100V集中 @FormatPercent(feature.NearDefaultRatio)</span>
-                                                <span>最多値 @feature.MostCommonVoltage × @feature.MostCommonVoltageCount</span>
+                                                <span>0.97mA集中 @FormatPercent(feature.NearDefaultRatio)</span>
+                                                <span>日内SD @feature.StandardDeviation.ToString("0.000")</span>
+                                                <span>最多値 @feature.MostCommonCurrent × @feature.MostCommonCurrentCount</span>
                                                 @if (feature.HasRepeatedTemplate)
                                                 {
                                                     <span>テンプレート再登場あり</span>
@@ -201,35 +202,50 @@
                 <section class="ic-section">
                     <div class="ic-section-header">
                         <div>
-                            <h2>顧客ごとの基準値</h2>
-                            <p>平均とばらつきが極端に小さい顧客は、まとめ入力の兆候として見やすくなります。</p>
+                            <h2>電流値の分布</h2>
+                            <p>特定の値（特に1mA直下の0.97mA付近）へ件数が偏るほど、まとめ入力の兆候として見やすくなります。</p>
                         </div>
                     </div>
                     <div class="ic-table-wrap">
                         <table class="ic-table">
                             <thead>
                                 <tr>
-                                    <th>顧客ID</th>
-                                    <th>平均電圧</th>
-                                    <th>標準偏差</th>
-                                    <th>最小～最大</th>
-                                    <th>完全一致率</th>
+                                    <th>電流値</th>
+                                    <th>件数</th>
+                                    <th>構成比</th>
+                                    <th>判定</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var profile in result.FeatureSummary.CustomerProfiles)
+                                @foreach (var value in result.FeatureSummary.ValueDistribution.Take(15))
                                 {
                                     <tr>
-                                        <td>@profile.CustomerId</td>
-                                        <td>@profile.AverageVoltage.ToString("0.0")V</td>
-                                        <td>@profile.StandardDeviation.ToString("0.000")</td>
-                                        <td>@profile.MinimumVoltage.ToString("0.0")V ～ @profile.MaximumVoltage.ToString("0.0")V</td>
-                                        <td>@FormatPercent(profile.ExactRepeatRatio)</td>
+                                        <td>@value.Current.ToString("0.00")mA</td>
+                                        <td>@value.Count.ToString("N0")</td>
+                                        <td>@FormatPercent(value.Ratio)</td>
+                                        <td>
+                                            @if (value.Current >= 1.0)
+                                            {
+                                                <span class="ic-pattern-chip">基準超過</span>
+                                            }
+                                            else if (IsNearDefault(value.Current))
+                                            {
+                                                <span class="ic-pattern-chip">既定値付近</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="ic-muted">-</span>
+                                            }
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
+                    @if (result.FeatureSummary.ValueDistribution.Count > 15)
+                    {
+                        <div class="ic-placeholder">ほか @((result.FeatureSummary.ValueDistribution.Count - 15).ToString("N0")) 種類の値があります。</div>
+                    }
                 </section>
 
                 <section class="ic-section">
@@ -251,7 +267,7 @@
                                 <article class="ic-template-card">
                                     <strong>@template.OccurrenceCount.ToString("N0") 日で完全一致</strong>
                                     <span>@string.Join(", ", template.Dates.Select(x => x.ToString("yyyy-MM-dd")))</span>
-                                    <p>@template.CustomerPattern</p>
+                                    <p>@template.ValuePattern</p>
                                 </article>
                             }
                         </div>
@@ -272,7 +288,7 @@
                             <tr>
                                 <th>調査日</th>
                                 <th>顧客ID</th>
-                                <th>電圧</th>
+                                <th>漏れ電流</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -281,7 +297,7 @@
                                 <tr>
                                     <td>@row.InvestigationDate.ToString("yyyy-MM-dd")</td>
                                     <td>@row.CustomerId</td>
-                                    <td>@row.Voltage.ToString("0.0")V</td>
+                                    <td>@row.Current.ToString("0.00")mA</td>
                                 </tr>
                             }
                         </tbody>

@@ -12,10 +12,10 @@ public sealed partial class Check : ComponentBase, IDisposable
 {
     private static readonly SampleFile[] SampleFiles =
     [
-        new("normal-organic-variance.csv", "正常: 営業日22日・198件の自然変動", "正常パターン", "2026年4月の営業日22日、1日9顧客。顧客ごとの基準値を保ちながら自然に揺れるデータ。", "normal", "/samples/normal-organic-variance.csv"),
-        new("normal-route-weather-shift.csv", "正常: 系統変動つき営業日データ", "正常パターン", "営業日22日・198件。日単位の系統変動があっても、顧客差は維持されるデータ。", "normal", "/samples/normal-route-weather-shift.csv"),
-        new("fraud-default-100-template.csv", "不正: 100V既定値の大量流用", "不正パターン", "営業日22日・198件。毎日9顧客を回った体裁だが、100.0V前後の固定値を繰り返すデータ。", "fraud", "/samples/fraud-default-100-template.csv"),
-        new("fraud-repeated-daily-template.csv", "不正: 日次テンプレートの反復入力", "不正パターン", "営業日22日・198件。複数日の値並びをそのまま再利用した階段状パターンのデータ。", "fraud", "/samples/fraud-repeated-daily-template.csv")
+        new("normal-organic-variance.csv", "正常: 巡回11日・198件の自然変動", "正常パターン", "2026年4月の調査11日、1日18顧客を巡回。設備ごとに漏れ電流が自然に散らばる正常データ。", "normal", "/samples/normal-organic-variance.csv"),
+        new("normal-route-weather-shift.csv", "正常: 湿度変動つき巡回データ", "正常パターン", "巡回11日・198件。日単位で全体の漏れ電流水準が上下しても、日内のばらつきは保たれる正常データ。", "normal", "/samples/normal-route-weather-shift.csv"),
+        new("fraud-default-097-template.csv", "不正: 0.97mA既定値の大量流用", "不正パターン", "巡回11日・198件。毎日18顧客を回った体裁だが、1mA直下の0.97mA前後を繰り返すデータ。", "fraud", "/samples/fraud-default-097-template.csv"),
+        new("fraud-repeated-daily-template.csv", "不正: 日次テンプレートの反復入力", "不正パターン", "巡回11日・198件。顧客は日替わりなのに、同じ電流値の並びを毎日そのまま使い回す階段状データ。", "fraud", "/samples/fraud-repeated-daily-template.csv")
     ];
 
     [Inject]
@@ -153,6 +153,8 @@ public sealed partial class Check : ComponentBase, IDisposable
     };
 
     private static string FormatPercent(double value) => $"{value * 100:0}%";
+
+    private static bool IsNearDefault(double current) => Math.Abs(current - 0.97) <= 0.02 + 1e-9;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
