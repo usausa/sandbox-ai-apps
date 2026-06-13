@@ -54,31 +54,6 @@ Blazor 画面で表示
 - `fraud-repeated-daily-template.csv`
   - 同じ電流値の並びを毎日使い回す（階段状テンプレート）不正データ
 
-## 設定
-
-`appsettings.json` には検証用の Foundry エンドポイントとデプロイ名を設定済みです。
-
-```json
-{
-  "InspectorChecker": {
-    "UploadPath": "./upload",
-    "PreviewRowCount": 12
-  },
-  "Foundry": {
-    "Endpoint": "https://foundry-usausa-resource.services.ai.azure.com",
-    "ApiKey": "",
-    "ChatDeployment": "gpt-5.4-mini"
-  }
-}
-```
-
-API キーはコミットせず、`.NET user-secrets` で設定してください。
-
-```pwsh
-cd InspectorChecker
-dotnet user-secrets set "Foundry:ApiKey" "<受領したAPIキー>"
-```
-
 ## CSV フォーマット
 
 UTF-8、ヘッダ付きの CSV を想定します。
@@ -90,15 +65,6 @@ InvestigationDate,CustomerId,Current
 ```
 
 `Current` は漏れ電流（mA、小数2桁）です。
-
-## 起動方法
-
-```pwsh
-cd InspectorChecker
-dotnet run
-```
-
-ブラウザで `http://localhost:5142` を開きます。
 
 ## 画面の見方
 

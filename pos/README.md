@@ -2,6 +2,8 @@
 
 小売店の従業員による **POSレジ操作の不正**（取消抜き取り・返品抜き取り・ポイント不正など）を、トランザクションログと LLM から検出する Blazor Server アプリケーションです。判定は **「1営業日 × 1従業員」単位**で行います。既存の `inspector`（InspectorChecker）の作りを踏襲しています。
 
+<img src="Document/image.png" title="Image" width="50%">
+
 ## アーキテクチャ
 
 ```text
@@ -62,37 +64,6 @@ Blazor 画面で表示
 python tools/generate_samples.py
 ```
 
-## 設定
-
-`appsettings.json` に検証用の Foundry エンドポイントとデプロイ名を設定済みです。
-
-```json
-{
-  "PosChecker": {
-    "UploadPath": "./upload",
-    "PreviewRowCount": 12,
-    "SaleThenVoidWindowSeconds": 180,
-    "RepeatedRefundMinOccurrences": 2,
-    "BusinessHoursStartHour": 9,
-    "BusinessHoursEndHour": 21,
-    "HighValueReturnAmount": 5000,
-    "RedeemConcentrationThreshold": 0.5
-  },
-  "Foundry": {
-    "Endpoint": "https://foundry-usausa-resource.services.ai.azure.com",
-    "ApiKey": "",
-    "ChatDeployment": "gpt-5.4-mini"
-  }
-}
-```
-
-API キーはコミットせず、`.NET user-secrets` で設定してください。
-
-```pwsh
-cd PosChecker
-dotnet user-secrets set "Foundry:ApiKey" "<受領したAPIキー>"
-```
-
 ## CSV フォーマット
 
 UTF-8、ヘッダ付きの CSV を想定します。1行 = 1取引。
@@ -109,15 +80,6 @@ BusinessDate,CashierId,TransactionId,Time,Type,Amount,ItemCount,PaymentMethod,Di
 - `PaymentMethod`: `Cash` / `Credit` / `QR` / `GiftCard` / `Other`
 - `Amount`: 商品総額（グロス、非負の円）。`PointsEarned` / `PointsRedeemed` は 1pt=1円。
 - `OriginalTransactionId`: Void / Return が参照する元取引。`HasReceipt`: 返品のレシート有無（`true`/`false`）。
-
-## 起動方法
-
-```pwsh
-cd PosChecker
-dotnet run
-```
-
-ブラウザで `http://localhost:5142` を開きます。
 
 ## 画面の見方
 

@@ -170,17 +170,26 @@
                                         @if (feature is not null)
                                         {
                                             <div class="ic-feature-stack">
-                                                <span>Void率 @FormatPercent(feature.VoidRatio)（@(feature.VoidCount)件） / 返金率 @FormatPercent(feature.ReturnRatio)（@(feature.ReturnCount)件）</span>
-                                                <span>レシート無返品 @(feature.NoReceiptReturnCount)件 / 現金返金 @FormatYen(feature.CashReturnAmount)</span>
-                                                <span>NoSale @(feature.NoSaleCount)件 / 値引率 @FormatPercent(feature.DiscountRatio)</span>
+                                                <span>取引 @(feature.TransactionCount)件 / 売上 @(feature.SalesCount)件 @FormatYen(feature.SalesAmount)</span>
+                                                <span>Void率 @FormatPercent(feature.VoidRatio)（@(feature.VoidCount)件 @FormatYen(feature.VoidAmount)） / 返金率 @FormatPercent(feature.ReturnRatio)（@(feature.ReturnCount)件 @FormatYen(feature.ReturnAmount)）</span>
+                                                <span>レシート無返品 @(feature.NoReceiptReturnCount)件（@FormatPercent(feature.NoReceiptReturnRatio)） / 現金返金 @FormatYen(feature.CashReturnAmount)</span>
+                                                <span>NoSale @(feature.NoSaleCount)件 / 値引 @FormatYen(feature.DiscountAmount)（@FormatPercent(feature.DiscountRatio)）</span>
                                                 <span>ポイント 利用 @feature.PointsRedeemed / 付与 @feature.PointsEarned</span>
-                                                @if (feature.NonMemberPointsRedeemedCount > 0 || feature.PointsRedeemedCashCount > 0)
+                                                @if (feature.NonMemberPointsEarnedCount > 0 || feature.NonMemberPointsRedeemedCount > 0 || feature.PointsRedeemedCashCount > 0)
                                                 {
-                                                    <span>会員不在利用 @(feature.NonMemberPointsRedeemedCount)件 / 現金利用 @(feature.PointsRedeemedCashCount)件</span>
+                                                    <span>会員不在 付与@(feature.NonMemberPointsEarnedCount)件 / 利用@(feature.NonMemberPointsRedeemedCount)件 / 現金利用@(feature.PointsRedeemedCashCount)件</span>
                                                 }
                                                 @if (feature.RedeemMembershipConcentration > 0 && feature.TopRedeemMembershipId is not null)
                                                 {
                                                     <span>利用会員偏り @FormatPercent(feature.RedeemMembershipConcentration)（@feature.TopRedeemMembershipId）</span>
+                                                }
+                                                @if (feature.RepeatedRefundAmountCount > 0)
+                                                {
+                                                    <span>同額返品の反復 @(feature.RepeatedRefundAmountCount)件</span>
+                                                }
+                                                @if (feature.TopReturnMembershipId is not null)
+                                                {
+                                                    <span>返金偏り会員 @feature.TopReturnMembershipId</span>
                                                 }
                                                 @if (feature.SaleThenVoidCount > 0)
                                                 {
