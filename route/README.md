@@ -2,7 +2,9 @@
 
 電気設備点検の調査員が、その日の訪問先一覧から **1 日・調査員 1 名分の足順（訪問順）** を決める Blazor Server アプリケーションです。移動時間と指定時間帯を考慮した足順を**アルゴリズムで算出**し、その案を **Microsoft Foundry（LLM）でルール検証し、改善提案**を受け取るハイブリッド構成です。
 
-詳細な設計は [docs/設計書.md](./docs/設計書.md) を参照してください。
+<img src="Document/image.png" title="Image" width="50%">
+
+詳細な設計は [Document/設計書.md](./docs/設計書.md) を参照してください。
 
 ## アーキテクチャ
 
@@ -48,31 +50,6 @@ Blazor 画面で地図・足順テーブル・レビューを表示
   - 甲府市内の業務 6 件。午前中・14:00-16:00 等の厳守/希望の時間帯指定が多く、枠の取り合いを検証。
 - `kofu-wide-10.csv`
   - 甲府市内に広域 10 件。所要合計が大きく、残業や未割当が出やすい境界ケース。
-
-## 設定
-
-`appsettings.json` に検証用の Foundry エンドポイントとデプロイ名を設定済みです。
-
-```json
-{
-  "RoutePlanner": {
-    "UploadPath": "./upload",
-    "PreviewRowCount": 12
-  },
-  "Foundry": {
-    "Endpoint": "https://foundry-usausa-resource.services.ai.azure.com",
-    "ApiKey": "",
-    "ChatDeployment": "gpt-5.4-mini"
-  }
-}
-```
-
-API キーはコミットせず、`.NET user-secrets` で設定してください。
-
-```pwsh
-cd RoutePlanner
-dotnet user-secrets set "Foundry:ApiKey" "<受領したAPIキー>"
-```
 
 ## CSV フォーマット
 
