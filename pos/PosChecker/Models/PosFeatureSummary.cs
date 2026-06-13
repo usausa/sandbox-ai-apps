@@ -1,0 +1,27 @@
+namespace PosChecker.Models;
+
+public sealed record PosFeatureSummary(
+    int RecordCount,
+    string CashierId,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    int BusinessDayCount,
+    int SalesCount,
+    long SalesAmount,
+    int VoidCount,
+    long VoidAmount,
+    int ReturnCount,
+    long ReturnAmount,
+    int NoSaleCount,
+    double VoidRatio,
+    double ReturnAmountRatio,
+    double NoReceiptReturnRatio,
+    int PointsEarnedTotal,
+    int PointsRedeemedTotal,
+    int NonMemberPointsEarnedCount,
+    int NonMemberPointsRedeemedCount,
+    int PointsRedeemedCashCount,
+    IReadOnlyList<TransactionTypeBreakdown> TypeDistribution,
+    IReadOnlyList<PaymentBreakdown> PaymentDistribution,
+    IReadOnlyList<DailyFeatureSummary> DailySummaries,
+    IReadOnlyList<SequenceAnomaly> SequenceAnomalies);
