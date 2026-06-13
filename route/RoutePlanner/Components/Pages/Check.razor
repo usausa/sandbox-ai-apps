@@ -1,0 +1,347 @@
+@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>RoutePlanner</PageTitle>
+
+<div class="ic">
+    <div class="ic-actions">
+        <div class="ic-dropzone-shell">
+            <label class="ic-dropzone @(isBusy ? "is-busy" : string.Empty)"
+                   title="その日の訪問先一覧CSVをアップロード"
+                   @ref="dropZoneRef">
+                <div class="ic-dropzone-icon">
+                    <i class="bi bi-file-earmark-arrow-up"></i>
+                </div>
+                <div class="ic-dropzone-copy">
+                    <strong>訪問先CSVをアップロード</strong>
+                    <span>クリックして選択、またはこのエリアへCSVをドラッグ＆ドロップ</span>
+                </div>
+                <InputFile @key="inputFileKey" OnChange="OnCsvFileChangedAsync" accept=".csv,text/csv" class="ic-upload-input" disabled="@isBusy" />
+            </label>
+        </div>
+        @if (result is not null && !isBusy)
+        {
+            <button type="button" class="btn-se-ghost" @onclick="ClearAsync">
+                <i class="bi bi-trash3"></i>
+                <span>結果をクリア</span>
+            </button>
+        }
+        @if (isBusy)
+        {
+            <button type="button" class="btn-se-ghost" @onclick="CancelAsync">
+                <i class="bi bi-stop-circle"></i>
+                <span>キャンセル</span>
+            </button>
+        }
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <div class="fb-error-toast">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>@errorMessage</span>
+            <button type="button" class="btn-se-icon" @onclick="() => errorMessage = null">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    }
+
+    @if (isBusy)
+    {
+        <div class="ig-progress">
+            <div class="spinner-se spinner-se-lg" role="status"></div>
+            <span class="ig-progress-message">@progressMessage</span>
+        </div>
+    }
+
+    <div class="ic-content">
+        @if (result is null)
+        {
+            <section class="ic-empty">
+                <div class="ic-empty-icon">
+                    <i class="bi bi-signpost-split"></i>
+                </div>
+                <h1>訪問先一覧から、調査員1日分の足順を最適化</h1>
+                <p>
+                    その日の訪問先CSVをアップロードすると、移動時間と指定時間帯を考慮した足順をアルゴリズムで算出し、
+                    その案を Foundry の LLM に渡してルール違反の検証と具体的な改善提案を受け取ります。
+                </p>
+                <div class="ic-empty-format">
+                    主なCSV列は <code>VisitId,Address,Latitude,Longitude,Category,ServiceMinutes,WindowStart,WindowEnd,WindowStrict,Priority</code> です。種別は 一般/業務、時間帯は HH:mm。
+                </div>
+            </section>
+
+            <section class="ic-section">
+                <div class="ic-section-header">
+                    <div>
+                        <h2>デモ用サンプルCSV</h2>
+                        <p>難易度の異なる3種を用意しています。ローカルで保存してからアップロードしてください。</p>
+                    </div>
+                </div>
+                <div class="ic-sample-grid">
+                    @foreach (var sample in SampleFiles)
+                    {
+                        <a class="ic-sample-card" href="@sample.Url" download="@sample.FileName">
+                            <span class="ic-sample-kind @sample.KindClass">@sample.KindLabel</span>
+                            <strong>@sample.Title</strong>
+                            <span>@sample.Description</span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="ic-overview">
+                <article class="ic-score-card @GetFeasibilityClass(result.Review.FeasibilityScore)">
+                    <span class="ic-score-label">実現性スコア</span>
+                    <strong class="ic-score-value">@result.Review.FeasibilityScore</strong>
+                    <span class="ic-score-unit">/ 100</span>
+                    <p>@GetFeasibilityCaption(result.Review.FeasibilityScore)</p>
+                </article>
+
+                <article class="ic-stat-card">
+                    <h2>足順サマリー</h2>
+                    <dl class="ic-stat-list">
+                        <div><dt>ファイル</dt><dd>@result.UploadedFileName</dd></div>
+                        <div><dt>訪問件数</dt><dd>@result.Plan.VisitCount.ToString("N0") 件</dd></div>
+                        <div><dt>総移動</dt><dd>@result.Plan.TotalDistanceKm.ToString("0.0") km / @result.Plan.TotalTravelMinutes 分</dd></div>
+                        <div><dt>稼働</dt><dd>@FormatTime(result.Plan.StartTime) ～ @FormatTime(result.Plan.EndTime)</dd></div>
+                        <div><dt>残業</dt><dd>@result.Plan.OvertimeMinutes 分</dd></div>
+                        <div><dt>時間枠違反 / 未割当</dt><dd>@result.Plan.WindowViolationCount 件 / @result.Plan.UnassignedVisits.Count 件</dd></div>
+                    </dl>
+                </article>
+
+                <article class="ic-stat-card ic-summary-card">
+                    <h2>AIレビュー</h2>
+                    <p>@result.Review.Summary</p>
+                    <div class="ic-recommendation">
+                        <i class="bi bi-lightbulb"></i>
+                        <span>@result.Review.RecommendedAction</span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="ic-section">
+                <div class="ic-section-header">
+                    <div>
+                        <h2>地図</h2>
+                        <p>足順を地図上に表示します（番号は訪問順、青=拠点、赤=時間枠超過）。</p>
+                    </div>
+                </div>
+                <div id="route-map" class="route-map"></div>
+            </section>
+
+            <section class="ic-section">
+                <div class="ic-section-header">
+                    <div>
+                        <h2>足順（訪問順）</h2>
+                        <p>出発から帰着までの時系列です。指定時間帯に間に合わない立ち寄りは赤系で示します。</p>
+                    </div>
+                </div>
+                <div class="ic-table-wrap">
+                    <table class="ic-table">
+                        <thead>
+                            <tr>
+                                <th>順</th>
+                                <th>区分</th>
+                                <th>訪問先</th>
+                                <th>到着→出発</th>
+                                <th>種別</th>
+                                <th>指定時間帯</th>
+                                <th>移動</th>
+                                <th>状態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var stop in result.Plan.Stops)
+                            {
+                                <tr class="@GetStopRowClass(stop)">
+                                    <td>@stop.Order</td>
+                                    <td>@GetKindLabel(stop.Kind)</td>
+                                    <td>@stop.Label</td>
+                                    <td>@FormatTime(stop.Arrival) → @FormatTime(stop.Departure)</td>
+                                    <td>@GetCategoryLabel(stop.Visit?.Category)</td>
+                                    <td>
+                                        @if (stop.Kind == StopKind.Visit)
+                                        {
+                                            @GetWindowLabel(stop.Visit)
+                                        }
+                                        else
+                                        {
+                                            <span class="ic-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (stop.TravelMinutesFromPrev > 0)
+                                        {
+                                            <span>@stop.TravelKmFromPrev.ToString("0.0") km / @stop.TravelMinutesFromPrev 分</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ic-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (stop.WindowViolation)
+                                        {
+                                            <span class="ic-score-pill risk-high">枠超過</span>
+                                        }
+                                        else if (stop.WaitMinutes > 0)
+                                        {
+                                            <span class="ic-muted">待ち @stop.WaitMinutes 分</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ic-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="ic-detail-grid">
+                <section class="ic-section">
+                    <div class="ic-section-header">
+                        <div>
+                            <h2>ルール違反 / リスク</h2>
+                            <p>AI が業務ルールに照らして検出した問題点です。</p>
+                        </div>
+                    </div>
+                    @if (result.Review.RuleViolations.Count == 0)
+                    {
+                        <div class="ic-placeholder">重大なルール違反は検出されませんでした。</div>
+                    }
+                    else
+                    {
+                        <div class="ic-table-wrap">
+                            <table class="ic-table">
+                                <thead>
+                                    <tr>
+                                        <th>対象</th>
+                                        <th>種別</th>
+                                        <th>重大度</th>
+                                        <th>内容</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var violation in result.Review.RuleViolations)
+                                    {
+                                        <tr>
+                                            <td>@violation.StopId</td>
+                                            <td>@violation.Type</td>
+                                            <td><span class="ic-score-pill @GetSeverityClass(violation.Severity)">@GetSeverityLabel(violation.Severity)</span></td>
+                                            <td>@violation.Detail</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+
+                <section class="ic-section">
+                    <div class="ic-section-header">
+                        <div>
+                            <h2>改善提案</h2>
+                            <p>足順をより良くするための具体的なアクションです。</p>
+                        </div>
+                    </div>
+                    @if (result.Review.ImprovementSuggestions.Count == 0)
+                    {
+                        <div class="ic-placeholder">追加の改善提案はありません。</div>
+                    }
+                    else
+                    {
+                        <div class="ic-template-list">
+                            @foreach (var suggestion in result.Review.ImprovementSuggestions)
+                            {
+                                <article class="ic-template-card">
+                                    <strong>@GetActionLabel(suggestion.Action)@(suggestion.TargetStopIds.Count > 0 ? $"：{string.Join(", ", suggestion.TargetStopIds)}" : string.Empty)</strong>
+                                    <span>@suggestion.Reason</span>
+                                    @if (!string.IsNullOrWhiteSpace(suggestion.ExpectedEffect))
+                                    {
+                                        <p>期待効果: @suggestion.ExpectedEffect</p>
+                                    }
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            </section>
+
+            @if (result.Review.RiskNotes.Count > 0)
+            {
+                <section class="ic-section">
+                    <div class="ic-section-header">
+                        <div>
+                            <h2>注意メモ</h2>
+                            <p>天候・アクセスなど、当日の留意点です。</p>
+                        </div>
+                    </div>
+                    <div class="ic-pattern-list">
+                        @foreach (var note in result.Review.RiskNotes)
+                        {
+                            <span class="ic-pattern-chip">@note</span>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (result.Plan.UnassignedVisits.Count > 0)
+            {
+                <section class="ic-section">
+                    <div class="ic-section-header">
+                        <div>
+                            <h2>未割当の訪問先</h2>
+                            <p>勤務時間や時間帯指定の制約で当日に組み込めなかった訪問先です。</p>
+                        </div>
+                    </div>
+                    <div class="ic-pattern-list">
+                        @foreach (var visit in result.Plan.UnassignedVisits)
+                        {
+                            <span class="ic-pattern-chip">@visit.VisitId（@GetCategoryLabel(visit.Category)・優先度@GetPriorityLabel(visit.Priority)）</span>
+                        }
+                    </div>
+                </section>
+            }
+
+            <section class="ic-section">
+                <div class="ic-section-header">
+                    <div>
+                        <h2>入力プレビュー</h2>
+                        <p>アップロードした先頭 @result.PreviewRows.Count.ToString("N0") 件です。</p>
+                    </div>
+                </div>
+                <div class="ic-table-wrap">
+                    <table class="ic-table">
+                        <thead>
+                            <tr>
+                                <th>VisitId</th>
+                                <th>訪問先</th>
+                                <th>種別</th>
+                                <th>指定時間帯</th>
+                                <th>優先度</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in result.PreviewRows)
+                            {
+                                <tr>
+                                    <td>@row.VisitId</td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.CustomerName) ? row.Address : row.CustomerName)</td>
+                                    <td>@GetCategoryLabel(row.Category)</td>
+                                    <td>@GetWindowLabel(row)</td>
+                                    <td>@GetPriorityLabel(row.Priority)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    </div>
+</div>
