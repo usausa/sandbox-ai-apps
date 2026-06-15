@@ -19,7 +19,7 @@
   "WeatherDurationFactor": 1.0,
   "GeneralServiceMinutes": 20,
   "BusinessServiceMinutes": 40,
-  "BufferMinutes": 5,
+  "BufferMinutes": 2,
   "MaxVisits": null,
   "AllowOvertime": false,
   "MaxOvertimeMinutes": 0,

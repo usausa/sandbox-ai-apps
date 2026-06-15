@@ -14,9 +14,9 @@ public sealed partial class Check : ComponentBase, IDisposable
 {
     private static readonly SampleFile[] SampleFiles =
     [
-        new("kofu-dense-100.csv", "標準: 狭域・集合住宅中心 約100件", "標準", "甲府市中心部の狭い範囲に集合住宅（同一地点の住戸）を中心とした約100件（午前約50/午後約50）。1件あたりの調査は短時間で、戸別点検型の基本的な足順生成を確認できます。", "normal", "/samples/kofu-dense-100.csv"),
-        new("kofu-window-100.csv", "時間帯指定: 狭域 約100件", "時間帯指定", "狭域・約100件で午前中・14:00-16:00などの厳守/希望の時間帯指定が多く、枠の取り合いと希望超過（違反）・未割当を検証できます。", "normal", "/samples/kofu-window-100.csv"),
-        new("kofu-tight-130.csv", "残業注意: 狭域 約130件", "残業注意", "狭域に集合住宅を多数含む約130件。1日の処理能力を超える件数で、未割当や勤務終了間際の残業が発生しやすい境界ケースです。", "fraud", "/samples/kofu-tight-130.csv")
+        new("kofu-dense-90.csv", "標準: 狭域・戸建中心 約90件", "標準", "甲府市中心部の狭い範囲で、一定地域の隣家を順に回る戸建中心の約90件（集合住宅は少数）。1件あたりの調査は短時間で、戸別点検型の基本的な足順生成を確認できます。", "normal", "/samples/kofu-dense-90.csv"),
+        new("kofu-window-100.csv", "時間帯指定: 狭域 約100件", "時間帯指定", "狭域・戸建中心の約100件で午前中・14:00-16:00などの厳守/希望の時間帯指定が多く、枠の取り合いと希望超過（違反）・未割当を検証できます。", "normal", "/samples/kofu-window-100.csv"),
+        new("kofu-tight-120.csv", "残業注意: 狭域 約120件", "残業注意", "狭域に戸建を多数含む約120件。1日の処理能力を超える件数で、未割当や勤務終了間際の残業が発生しやすい境界ケースです。", "fraud", "/samples/kofu-tight-120.csv")
     ];
 
     [Inject]

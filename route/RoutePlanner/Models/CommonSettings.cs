@@ -41,7 +41,7 @@ public sealed class CommonSettings
 
     public int BusinessServiceMinutes { get; set; } = 40;
 
-    public int BufferMinutes { get; set; } = 5;
+    public int BufferMinutes { get; set; } = 2;
 
     public int? MaxVisits { get; set; }
 
