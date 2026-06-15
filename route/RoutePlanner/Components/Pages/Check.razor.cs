@@ -158,7 +158,15 @@ public sealed partial class Check : ComponentBase, IDisposable
                 continue;
             }
 
-            points.Add(new MapPoint(stop.Order, stop.Label, latitude, longitude, stop.Kind.ToString(), stop.WindowViolation));
+            points.Add(new MapPoint(
+                stop.Order,
+                stop.Label,
+                latitude,
+                longitude,
+                stop.Kind.ToString(),
+                stop.WindowViolation,
+                FormatTime(stop.Arrival),
+                FormatTime(stop.Departure)));
         }
 
         return points;
@@ -286,6 +294,8 @@ public sealed partial class Check : ComponentBase, IDisposable
         double Lat,
         double Lng,
         string Kind,
-        bool Violation);
+        bool Violation,
+        string Arrival,
+        string Departure);
     // ReSharper restore NotAccessedPositionalProperty.Local
 }

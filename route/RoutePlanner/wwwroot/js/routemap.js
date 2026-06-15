@@ -21,28 +21,73 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
+            // ポリラインは全立ち寄りを順に結ぶ。マーカーは同一地点を1つにまとめる。
             const latlngs = [];
+            const groups = new Map();
+            const groupOrder = [];
             stops.forEach(function (s) {
-                const ll = [s.lat, s.lng];
-                latlngs.push(ll);
+                latlngs.push([s.lat, s.lng]);
+                const key = s.lat + ',' + s.lng;
+                if (!groups.has(key)) {
+                    groups.set(key, []);
+                    groupOrder.push(key);
+                }
+                groups.get(key).push(s);
+            });
+
+            function timeText(s) {
+                if (s.kind === 'Office') {
+                    return s.arrival ? ' ' + s.arrival : '';
+                }
+                if (s.arrival) {
+                    return ' 訪問 ' + s.arrival + (s.departure ? '→' + s.departure : '');
+                }
+                return '';
+            }
+
+            groupOrder.forEach(function (key) {
+                const items = groups.get(key);
+                const first = items[0];
+                const ll = [first.lat, first.lng];
+                const isOffice = items.some(function (x) { return x.kind === 'Office'; });
+                const hasViol = items.some(function (x) { return x.violation; });
+                const multi = !isOffice && items.length > 1;
 
                 let cls = 'route-pin';
-                if (s.kind === 'Office') {
+                if (isOffice) {
                     cls += ' office';
-                } else if (s.violation) {
+                } else if (hasViol) {
                     cls += ' viol';
+                } else if (multi) {
+                    cls += ' multi';
                 }
+
+                // ピンの数字は最初の立ち寄り順。複数件は件数バッジを付ける。
+                let pinHtml = '<div class="' + cls + '">' + first.order;
+                if (multi) {
+                    pinHtml += '<span class="route-pin-count">' + items.length + '</span>';
+                }
+                pinHtml += '</div>';
 
                 const icon = L.divIcon({
                     className: 'route-pin-wrap',
-                    html: '<div class="' + cls + '">' + s.order + '</div>',
+                    html: pinHtml,
                     iconSize: [26, 26],
                     iconAnchor: [13, 13]
                 });
 
+                // ツールチップにはその地点の全件の時刻を列挙する。
+                const lines = items.map(function (x) {
+                    return x.order + '. ' + x.label + timeText(x);
+                });
+                let content = lines.join('<br>');
+                if (items.length > 1) {
+                    content = '<b>' + items.length + '件</b><br>' + content;
+                }
+
                 L.marker(ll, { icon: icon })
                     .addTo(map)
-                    .bindTooltip(s.order + '. ' + s.label);
+                    .bindTooltip(content);
             });
 
             if (latlngs.length > 1) {

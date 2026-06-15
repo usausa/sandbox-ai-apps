@@ -839,6 +839,7 @@ h1, h2, p {
 }
 
 .route-pin {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -859,4 +860,27 @@ h1, h2, p {
 
 .route-pin.viol {
     background: var(--se-danger);
+}
+
+/* 同一地点に複数の訪問先がある場合のピン色 */
+.route-pin.multi {
+    background: var(--se-warning);
+}
+
+/* 同一地点の件数を示すバッジ */
+.route-pin-count {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background: #1b1b1b;
+    color: #fff;
+    font-size: 9px;
+    line-height: 15px;
+    font-weight: 700;
+    border: 1.5px solid #fff;
+    box-sizing: border-box;
 }

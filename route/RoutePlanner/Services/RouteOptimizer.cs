@@ -19,6 +19,11 @@ public sealed class RouteOptimizer
     // 終了がこの分数以内に迫る時間帯指定訪問があれば「枠が間近」とみなし、地域結束を一時停止する。
     private const int WindowUrgencyMarginMinutes = 10;
 
+    // 移動時間(分)は切り上げで粗いため、近距離だと候補が同点になり入力順に落ちてしまう。
+    // 実距離(km)をごく小さな重みで加え、分が同点のとき地理的に近い候補を先に選ぶタイブレークにする。
+    // 重みは 1 分の差(スコア約 1.1)を覆さない程度に小さく保つ。
+    private const double DistanceTieBreakWeight = 0.1;
+
     public RoutePlan Optimize(IReadOnlyList<VisitTarget> visits, CommonSettings common)
     {
         ArgumentNullException.ThrowIfNull(visits);
@@ -141,6 +146,7 @@ public sealed class RouteOptimizer
 
                 var score = startService
                     + (leg.TravelMinutes * 0.1)
+                    + (leg.DistanceKm * DistanceTieBreakWeight)
                     + PriorityPenalty(candidate.Priority)
                     + (windowEnd.HasValue ? 0 : 5);
 
@@ -171,6 +177,26 @@ public sealed class RouteOptimizer
             if (best is null)
             {
                 break;
+            }
+
+            // 同一建物・同一時間帯の住戸は名称順（部屋番号順）に回す。
+            // どの建物へ向かうかはスコアで決め、その建物・同一時間帯の中では最小名称の住戸へ寄せる。
+            // 同一座標・同一時間帯のため移動/到着/着手/違反は best と同一で、所要のみ住戸ごとに異なる。
+            if (!string.IsNullOrEmpty(best.BuildingGroupId))
+            {
+                var nameFirst = remaining
+                    .Where(v => string.Equals(v.BuildingGroupId, best.BuildingGroupId, StringComparison.Ordinal)
+                        && Nullable.Equals(v.WindowStart, best.WindowStart)
+                        && Nullable.Equals(v.WindowEnd, best.WindowEnd))
+                    .OrderBy(v => v.CustomerName, StringComparer.Ordinal)
+                    .First();
+
+                // 名称順の先頭が勤務終了(＋許容残業)を超えない場合のみ寄せる。
+                if (!ReferenceEquals(nameFirst, best)
+                    && bestStart + EffectiveService(nameFirst, common) <= endLimit)
+                {
+                    best = nameFirst;
+                }
             }
 
             var bestService = EffectiveService(best, common);
