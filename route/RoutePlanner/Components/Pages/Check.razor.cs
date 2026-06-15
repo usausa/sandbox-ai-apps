@@ -158,6 +158,8 @@ public sealed partial class Check : ComponentBase, IDisposable
                 continue;
             }
 
+            var hasWindow = stop.Visit is { } v && (v.WindowStart is not null || v.WindowEnd is not null);
+
             points.Add(new MapPoint(
                 stop.Order,
                 stop.Label,
@@ -166,7 +168,9 @@ public sealed partial class Check : ComponentBase, IDisposable
                 stop.Kind.ToString(),
                 stop.WindowViolation,
                 FormatTime(stop.Arrival),
-                FormatTime(stop.Departure)));
+                FormatTime(stop.Departure),
+                hasWindow,
+                hasWindow ? GetWindowLabel(stop.Visit) : string.Empty));
         }
 
         return points;
@@ -296,6 +300,8 @@ public sealed partial class Check : ComponentBase, IDisposable
         string Kind,
         bool Violation,
         string Arrival,
-        string Departure);
+        string Departure,
+        bool HasWindow,
+        string Window);
     // ReSharper restore NotAccessedPositionalProperty.Local
 }

@@ -51,13 +51,17 @@
                 const ll = [first.lat, first.lng];
                 const isOffice = items.some(function (x) { return x.kind === 'Office'; });
                 const hasViol = items.some(function (x) { return x.violation; });
+                const hasWindow = items.some(function (x) { return x.window; });
                 const multi = !isOffice && items.length > 1;
 
+                // 色の優先順位: 拠点 > 時間枠超過 > 時間帯指定あり > 複数件 > 通常
                 let cls = 'route-pin';
                 if (isOffice) {
                     cls += ' office';
                 } else if (hasViol) {
                     cls += ' viol';
+                } else if (hasWindow) {
+                    cls += ' win';
                 } else if (multi) {
                     cls += ' multi';
                 }
@@ -78,7 +82,8 @@
 
                 // ツールチップにはその地点の全件の時刻を列挙する。
                 const lines = items.map(function (x) {
-                    return x.order + '. ' + x.label + timeText(x);
+                    return x.order + '. ' + x.label + timeText(x)
+                        + (x.window ? '（指定 ' + x.window + '）' : '');
                 });
                 let content = lines.join('<br>');
                 if (items.length > 1) {

@@ -862,6 +862,11 @@ h1, h2, p {
     background: var(--se-danger);
 }
 
+/* 時間帯指定のある訪問先のピン色 */
+.route-pin.win {
+    background: #7c3aed;
+}
+
 /* 同一地点に複数の訪問先がある場合のピン色 */
 .route-pin.multi {
     background: var(--se-warning);
