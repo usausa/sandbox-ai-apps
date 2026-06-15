@@ -112,6 +112,10 @@ public sealed class RouteReviewAnalyzer
                 kind = stop.Kind.ToString(),
                 stopId = stop.StopId,
                 stop.Label,
+                address = stop.Visit?.Address,
+                latitude = stop.Visit?.Latitude,
+                longitude = stop.Visit?.Longitude,
+                buildingGroupId = stop.Visit?.BuildingGroupId,
                 category = stop.Visit?.Category.ToString(),
                 windowStart = stop.Visit?.WindowStart?.ToString("HH:mm", CultureInfo.InvariantCulture),
                 windowEnd = stop.Visit?.WindowEnd?.ToString("HH:mm", CultureInfo.InvariantCulture),
@@ -151,6 +155,11 @@ public sealed class RouteReviewAnalyzer
             - 未割当(unassignedCount)の訪問先がないか
             - 昼休憩が確保されているか
             - 天候による移動余裕や安全上の注意
+            - 移動効率: 時間帯指定（windowStart/windowEnd）が無いのに、いったん離れた地域へ移動した後で
+              元の隣接地域へ戻る「地域の分割訪問」が起きていないか。緯度経度(latitude/longitude)・住所(address)・
+              建物グループ(buildingGroupId)から、近接する訪問先が連続してまとまっているかを確認し、
+              まとめれば移動を減らせる場合は reorder で並べ替えを提案してください。
+              ただし時間帯指定で離れざるを得ない移動は問題視しないでください。
 
             JSONのみで回答してください。
 

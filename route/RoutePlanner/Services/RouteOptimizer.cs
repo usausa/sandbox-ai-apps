@@ -4,9 +4,21 @@ using RoutePlanner.Models;
 
 // 時間帯指定を考慮した最近傍法ベースの足順生成。
 // 出発拠点から、最も早く着手できる訪問先を順に選び、昼休憩を挿入し、拠点へ帰着する。
+// 地域結束: 時間帯指定の無い訪問は、現在いる地域(約250m四方のセル)の未訪問が残る限りそこを優先的に
+// 片付け、「隣接地域を2回に分けて回る」分割訪問を抑制する。ただし時間帯指定が間近に迫る訪問が
+// あるときは結束を一時停止して枠を優先する（空間的まとまりより時間帯遵守を上位に置く）。
 // TODO: 2-opt / Or-opt の局所探索で移動時間をさらに短縮する（時間枠の実行可能性を保ちつつ入れ替える）。
 public sealed class RouteOptimizer
 {
+    // 同一「地域」とみなすグリッドの一辺（度）。約250m四方。
+    private const double AreaCellSizeDegrees = 0.0025;
+
+    // 地域離脱に与える擬似コスト。実距離より十分大きくし、未訪問の残る地域を先に片付けさせる。
+    private const double AreaCohesionPenalty = 1000.0;
+
+    // 終了がこの分数以内に迫る時間帯指定訪問があれば「枠が間近」とみなし、地域結束を一時停止する。
+    private const int WindowUrgencyMarginMinutes = 10;
+
     public RoutePlan Optimize(IReadOnlyList<VisitTarget> visits, CommonSettings common)
     {
         ArgumentNullException.ThrowIfNull(visits);
@@ -27,6 +39,7 @@ public sealed class RouteOptimizer
         var currentLon = common.OfficeLongitude;
         var departingFromVisit = false;
         string? currentBuildingGroupId = null;
+        (long Row, long Col)? currentArea = null;
         var lunchTaken = common.LunchMinutes <= 0;
 
         var totalKm = 0.0;
@@ -82,6 +95,16 @@ public sealed class RouteOptimizer
             var bestViolation = false;
             var bestScore = double.MaxValue;
 
+            // 現在地域に時間帯指定の無い未訪問が残っているか（残っていれば地域結束の対象）。
+            var currentAreaHasWindowlessRest = currentArea.HasValue
+                && remaining.Any(v => !v.WindowEnd.HasValue && AreaKey(v.Latitude, v.Longitude) == currentArea.Value);
+
+            // 終了が間近に迫る時間帯指定訪問があるか（あれば結束を停止し、枠を優先して取りに行く）。
+            var windowUrgentPending = remaining.Any(v =>
+                v.WindowEnd.HasValue
+                && (!v.WindowStart.HasValue || ToMinutes(v.WindowStart.Value) <= currentMinutes + WindowUrgencyMarginMinutes)
+                && ToMinutes(v.WindowEnd.Value) - currentMinutes <= WindowUrgencyMarginMinutes);
+
             foreach (var candidate in remaining)
             {
                 var leg = TravelTimeMatrixBuilder.Build(currentLat, currentLon, candidate.Latitude, candidate.Longitude, common);
@@ -120,6 +143,17 @@ public sealed class RouteOptimizer
                     + (leg.TravelMinutes * 0.1)
                     + PriorityPenalty(candidate.Priority)
                     + (windowEnd.HasValue ? 0 : 5);
+
+                // 地域結束: 現在地域に未訪問(時間帯指定なし)が残るのに、別地域の時間帯指定なし候補へ移ろうと
+                // する場合は擬似コストを加算して抑制する。枠が間近のときは結束を止め、枠を優先する。
+                if (departingFromVisit
+                    && currentAreaHasWindowlessRest
+                    && !windowUrgentPending
+                    && !windowEnd.HasValue
+                    && AreaKey(candidate.Latitude, candidate.Longitude) != currentArea!.Value)
+                {
+                    score += AreaCohesionPenalty;
+                }
 
                 if (score < bestScore)
                 {
@@ -169,6 +203,7 @@ public sealed class RouteOptimizer
             currentLat = best.Latitude;
             currentLon = best.Longitude;
             currentBuildingGroupId = best.BuildingGroupId;
+            currentArea = AreaKey(best.Latitude, best.Longitude);
             departingFromVisit = true;
             visitCount++;
             remaining.Remove(best);
@@ -224,6 +259,10 @@ public sealed class RouteOptimizer
             ? common.BusinessServiceMinutes
             : common.GeneralServiceMinutes;
     }
+
+    // 緯度経度を約250m四方のグリッドセルに丸め、近接訪問を同一「地域」として扱うキーにする。
+    private static (long Row, long Col) AreaKey(double latitude, double longitude) =>
+        ((long)Math.Round(latitude / AreaCellSizeDegrees), (long)Math.Round(longitude / AreaCellSizeDegrees));
 
     private static double PriorityPenalty(VisitPriority priority) => priority switch
     {
