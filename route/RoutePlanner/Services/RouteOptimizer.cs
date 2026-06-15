@@ -26,6 +26,7 @@ public sealed class RouteOptimizer
         var currentLat = common.OfficeLatitude;
         var currentLon = common.OfficeLongitude;
         var departingFromVisit = false;
+        string? currentBuildingGroupId = null;
         var lunchTaken = common.LunchMinutes <= 0;
 
         var totalKm = 0.0;
@@ -84,7 +85,11 @@ public sealed class RouteOptimizer
             foreach (var candidate in remaining)
             {
                 var leg = TravelTimeMatrixBuilder.Build(currentLat, currentLon, candidate.Latitude, candidate.Longitude, common);
-                var buffer = departingFromVisit ? common.BufferMinutes : 0;
+
+                // 同一建物（集合住宅）内の連続調査は移動・準備バッファを要しないため 0 とする。
+                var sameBuilding = !string.IsNullOrEmpty(candidate.BuildingGroupId)
+                    && string.Equals(candidate.BuildingGroupId, currentBuildingGroupId, StringComparison.Ordinal);
+                var buffer = departingFromVisit && !sameBuilding ? common.BufferMinutes : 0;
                 var arrive = currentMinutes + leg.TravelMinutes + buffer;
 
                 int? windowStart = candidate.WindowStart.HasValue ? ToMinutes(candidate.WindowStart.Value) : null;
@@ -163,6 +168,7 @@ public sealed class RouteOptimizer
             currentMinutes = departure;
             currentLat = best.Latitude;
             currentLon = best.Longitude;
+            currentBuildingGroupId = best.BuildingGroupId;
             departingFromVisit = true;
             visitCount++;
             remaining.Remove(best);

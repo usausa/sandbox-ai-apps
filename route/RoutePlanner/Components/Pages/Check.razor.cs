@@ -14,9 +14,9 @@ public sealed partial class Check : ComponentBase, IDisposable
 {
     private static readonly SampleFile[] SampleFiles =
     [
-        new("kofu-mixed-8.csv", "標準: 甲府市内8件（一般中心）", "標準", "甲府市役所を起点に、一般宅中心＋業務先を含む8件。時間帯指定は控えめで、基本的な足順生成を確認できます。", "normal", "/samples/kofu-mixed-8.csv"),
-        new("kofu-business-6.csv", "時間帯指定: 業務6件", "時間帯指定", "業務先中心の6件。午前中・14:00-16:00などの厳守/希望の時間帯指定が多く、枠の取り合いを検証できます。", "normal", "/samples/kofu-business-6.csv"),
-        new("kofu-wide-10.csv", "残業注意: 広域10件", "残業注意", "甲府市内に広く散らばる10件。所要時間の合計が大きく、残業や未割当が発生しやすい境界ケースです。", "fraud", "/samples/kofu-wide-10.csv")
+        new("kofu-dense-100.csv", "標準: 狭域・集合住宅中心 約100件", "標準", "甲府市中心部の狭い範囲に集合住宅（同一地点の住戸）を中心とした約100件（午前約50/午後約50）。1件あたりの調査は短時間で、戸別点検型の基本的な足順生成を確認できます。", "normal", "/samples/kofu-dense-100.csv"),
+        new("kofu-window-100.csv", "時間帯指定: 狭域 約100件", "時間帯指定", "狭域・約100件で午前中・14:00-16:00などの厳守/希望の時間帯指定が多く、枠の取り合いと希望超過（違反）・未割当を検証できます。", "normal", "/samples/kofu-window-100.csv"),
+        new("kofu-tight-130.csv", "残業注意: 狭域 約130件", "残業注意", "狭域に集合住宅を多数含む約130件。1日の処理能力を超える件数で、未割当や勤務終了間際の残業が発生しやすい境界ケースです。", "fraud", "/samples/kofu-tight-130.csv")
     ];
 
     [Inject]
