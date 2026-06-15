@@ -24,6 +24,14 @@ public sealed class RouteOptimizer
     // 重みは 1 分の差(スコア約 1.1)を覆さない程度に小さく保つ。
     private const double DistanceTieBreakWeight = 0.1;
 
+    // 時間帯遵守: 窓が開いていて今なら枠内に着手できる候補を、枠なし候補より一定だけ優先する。
+    // 幾何（近さ）の順序は保ちつつ、近場の枠なし候補に埋もれて指定時刻から大きく外れるのを防ぐ。
+    // 値はおよそ「この分数までの遠回りなら枠付きを先に取りに行く」を意味する。
+    private const double WindowUrgencyBonus = 20.0;
+
+    // 窓が「開いている」とみなす先読み余裕（分）。開始がこの分数以内に迫った窓も対象にする。
+    private const int WindowActiveHorizonMinutes = 0;
+
     public RoutePlan Optimize(IReadOnlyList<VisitTarget> visits, CommonSettings common)
     {
         ArgumentNullException.ThrowIfNull(visits);
@@ -149,6 +157,15 @@ public sealed class RouteOptimizer
                     + (leg.DistanceKm * DistanceTieBreakWeight)
                     + PriorityPenalty(candidate.Priority)
                     + (windowEnd.HasValue ? 0 : 5);
+
+                // 時間帯遵守: 窓が開いていて今なら枠内に着手できる候補を一定だけ優先する。
+                // 指定時刻から大きく外れた割当（枠超過）を防ぎつつ、近さの順序は保つ。
+                if (windowEnd.HasValue
+                    && startService <= windowEnd.Value
+                    && (!windowStart.HasValue || windowStart.Value <= currentMinutes + WindowActiveHorizonMinutes))
+                {
+                    score -= WindowUrgencyBonus;
+                }
 
                 // 地域結束: 現在地域に未訪問(時間帯指定なし)が残るのに、別地域の時間帯指定なし候補へ移ろうと
                 // する場合は擬似コストを加算して抑制する。枠が間近のときは結束を止め、枠を優先する。
