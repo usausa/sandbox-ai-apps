@@ -7,6 +7,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 using RoutePlanner.Models;
+using RoutePlanner.Settings;
 
 // 算出済みの足順を Foundry(LLM) に渡し、ルール検証と改善提案を JSON で受け取る。
 public sealed class RouteReviewAnalyzer
@@ -25,13 +26,16 @@ public sealed class RouteReviewAnalyzer
     private readonly ILogger<RouteReviewAnalyzer> log;
     private readonly string systemPrompt;
     private readonly IChatClient chatClient;
+    private readonly RoutePlannerSettings settings;
 
     public RouteReviewAnalyzer(
         ILogger<RouteReviewAnalyzer> log,
-        IChatClient chatClient)
+        IChatClient chatClient,
+        RoutePlannerSettings settings)
     {
         this.log = log;
         this.chatClient = chatClient;
+        this.settings = settings;
 
         var promptPath = Path.Combine(AppContext.BaseDirectory, "Prompts", "route_reviewer.txt");
         systemPrompt = File.ReadAllText(promptPath).Trim();
@@ -45,7 +49,7 @@ public sealed class RouteReviewAnalyzer
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(common);
 
-        var payload = BuildPayload(plan, common);
+        var payload = BuildPayload(plan, common, Math.Max(0, settings.ReviewLookaheadCount));
         var userPrompt = BuildUserPrompt(payload);
 
         var messages = new List<ChatMessage>
@@ -67,8 +71,12 @@ public sealed class RouteReviewAnalyzer
         return Normalize(Parse(text));
     }
 
-    private static object BuildPayload(RoutePlan plan, CommonSettings common)
+    private static object BuildPayload(RoutePlan plan, CommonSettings common, int lookaheadCount)
     {
+        // 各訪問先から「足順順で次の数件先」までの距離を前計算する。
+        // LLM が座標から距離を推測せず、行き来(交差)を数値で判定できるようにするための補助情報。
+        var nextDistances = BuildNextDistances(plan, common, lookaheadCount);
+
         return new
         {
             workDate = common.WorkDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -126,7 +134,8 @@ public sealed class RouteReviewAnalyzer
                 stop.ServiceMinutes,
                 stop.TravelMinutesFromPrev,
                 stop.WaitMinutes,
-                stop.WindowViolation
+                stop.WindowViolation,
+                nextDistances = nextDistances.GetValueOrDefault(stop.StopId)
             }),
             unassigned = plan.UnassignedVisits.Select(visit => new
             {
@@ -138,6 +147,44 @@ public sealed class RouteReviewAnalyzer
                 priority = visit.Priority.ToString()
             })
         };
+    }
+
+    // 足順順に並ぶ訪問先について、各訪問先から次の lookaheadCount 件先までの距離(km)・移動時間(分)を前計算する。
+    // 直前からの距離(travelMinutesFromPrev)だけでは並べ替えの良否を判断できないため、先読みの距離を補助情報として渡す。
+    private static Dictionary<string, IReadOnlyList<object>> BuildNextDistances(RoutePlan plan, CommonSettings common, int lookaheadCount)
+    {
+        var result = new Dictionary<string, IReadOnlyList<object>>(StringComparer.Ordinal);
+        if (lookaheadCount <= 0)
+        {
+            return result;
+        }
+
+        var visitStops = plan.Stops.Where(stop => stop is { Kind: StopKind.Visit, Visit: not null }).ToList();
+        for (var i = 0; i < visitStops.Count; i++)
+        {
+            var from = visitStops[i].Visit!;
+            var legs = new List<object>(lookaheadCount);
+            for (var offset = 1; offset <= lookaheadCount && i + offset < visitStops.Count; offset++)
+            {
+                var toStop = visitStops[i + offset];
+                var to = toStop.Visit!;
+                var leg = TravelTimeMatrixBuilder.Build(from.Latitude, from.Longitude, to.Latitude, to.Longitude, common);
+                legs.Add(new
+                {
+                    rank = offset,
+                    stopId = toStop.StopId,
+                    distanceKm = leg.DistanceKm,
+                    travelMinutes = leg.TravelMinutes
+                });
+            }
+
+            if (legs.Count > 0)
+            {
+                result[visitStops[i].StopId] = legs;
+            }
+        }
+
+        return result;
     }
 
     private static string BuildUserPrompt(object payload)
@@ -156,9 +203,11 @@ public sealed class RouteReviewAnalyzer
             - 昼休憩が確保されているか
             - 天候による移動余裕や安全上の注意
             - 移動効率: 時間帯指定（windowStart/windowEnd）が無いのに、いったん離れた地域へ移動した後で
-              元の隣接地域へ戻る「地域の分割訪問」が起きていないか。緯度経度(latitude/longitude)・住所(address)・
-              建物グループ(buildingGroupId)から、近接する訪問先が連続してまとまっているかを確認し、
-              まとめれば移動を減らせる場合は reorder で並べ替えを提案してください。
+              元の隣接地域へ戻る「地域の分割訪問」や「A→C→B のような行き来(交差)」が起きていないか。
+              各訪問先には nextDistances（足順順で次の数件先までの距離distanceKm・移動時間travelMinutes）が
+              付与されています。距離は座標から推測せず、必ずこの nextDistances の数値を使って判断してください。
+              例えばある訪問先から「次の1件目より2件目の方が近い」場合は行き来の疑いがあり、入れ替えで
+              総移動を減らせるなら reorder で並べ替えを提案してください（2-optの考え方）。
               ただし時間帯指定で離れざるを得ない移動は問題視しないでください。
 
             JSONのみで回答してください。

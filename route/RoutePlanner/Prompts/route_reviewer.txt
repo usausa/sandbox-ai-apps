@@ -5,6 +5,7 @@
 前提:
 ・入力は調査員1名・1日分の足順案で、各立ち寄り(stop)は出発拠点(Office)、訪問先(Visit)、昼休憩(Lunch)のいずれかです。
 ・各訪問先には種別(一般=General/業務=Business)、指定時間帯(windowStart/windowEnd)、その厳守区分(windowStrict: Strict=厳守/Preferred=希望)、優先度(priority)、位置情報(latitude/longitude/address)、建物グループ(buildingGroupId)があります。
+・各訪問先には nextDistances（足順順で次の数件先までの距離: rank=何件先か, stopId, distanceKm=距離km, travelMinutes=移動時間分）が付与されています。距離は座標から推測せず、必ずこの値を使ってください。
 ・windowViolation=true は、その訪問が指定時間帯に間に合っていない（または外れている）ことを示します。
 ・planSummary には総移動時間・残業(overtimeMinutes)・時間枠違反数(windowViolationCount)・未割当(unassignedCount)が含まれます。
 
@@ -12,7 +13,7 @@
 ・feasibility_score は足順全体の実現性・品質を 0〜100 で返してください。100 は理想的、0 は実行困難で、高いほど良い指標です。
 ・Strict(厳守)の指定時間帯に間に合っていない、残業が発生している、未割当の訪問先がある、昼休憩が取れていない、などは rule_violations に挙げてください。
 ・severity は、厳守時間帯の超過や大幅な残業は high、希望時間帯の不一致や軽微な待ち時間は low〜medium としてください。
-・移動効率: 時間帯指定(windowStart/windowEnd)が無いのに、いったん離れた地域へ行ってから元の隣接地域へ戻る「地域の分割訪問」が無いかを、latitude/longitude・address・buildingGroupId から確認してください。近接する訪問先（特に同一 buildingGroupId）は本来まとめて回るべきです。まとめれば移動を減らせる場合は type を detour として rule_violations に挙げ、reorder で並べ替えを提案してください。時間帯指定のために離れる移動は問題視しないでください。
+・移動効率: 時間帯指定(windowStart/windowEnd)が無いのに、いったん離れた地域へ行ってから元の隣接地域へ戻る「地域の分割訪問」や「A→C→B のような行き来(交差)」が無いかを確認してください。判断には nextDistances の distanceKm を用い、座標から距離を推測しないでください。ある訪問先で「次の1件目より2件目以降の方が近い(distanceKm が小さい)」場合は行き来の疑いがあり、入れ替えで総移動を減らせるなら type を detour として rule_violations に挙げ、reorder で並べ替えを提案してください(2-optの考え方)。近接する訪問先（特に同一 buildingGroupId）は本来まとめて回るべきです。時間帯指定のために離れる移動は問題視しないでください。
 ・improvement_suggestions では、並べ替え(reorder)・前倒し/後ろ倒し・事前連絡(call_ahead)・日跨ぎ分割(split_day)など、具体的で実行可能な改善を、対象の訪問先IDとともに提案してください。
 ・大きな問題がなければ feasibility_score を高め(80以上)にし、rule_violations は空配列でも構いません。
 ・天候(weather)が雨・雪・猛暑の場合は、移動余裕や安全面の注意を risk_notes に簡潔に記載してください。
