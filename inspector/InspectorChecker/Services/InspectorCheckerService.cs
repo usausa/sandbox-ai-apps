@@ -49,13 +49,14 @@ public sealed class InspectorCheckerService
         log.InfoFeatureSummaryBuilt(featureSummary.DailySummaries.Count, featureSummary.RepeatedDailyTemplates.Count);
 
         progress?.Report("Foundryで不正パターンを判定中...");
-        var analysis = await fraudAnalyzer.AnalyzeAsync(featureSummary, records, cancellationToken).ConfigureAwait(false);
+        var (analysis, usage) = await fraudAnalyzer.AnalyzeAsync(featureSummary, records, cancellationToken).ConfigureAwait(false);
         log.InfoInspectionAnalysisCompleted(analysis.OverallScore);
 
         return new InspectorCheckResult(
             Path.GetFileName(filePath),
             featureSummary,
             analysis,
+            usage,
             records.Take(settings.PreviewRowCount).ToArray());
     }
 }

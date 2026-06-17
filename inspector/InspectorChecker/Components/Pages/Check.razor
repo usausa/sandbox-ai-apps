@@ -107,6 +107,8 @@
                         <div><dt>行数</dt><dd>@result.FeatureSummary.RecordCount.ToString("N0")</dd></div>
                         <div><dt>顧客数</dt><dd>@result.FeatureSummary.CustomerCount.ToString("N0")</dd></div>
                         <div><dt>期間</dt><dd>@result.FeatureSummary.StartDate.ToString("yyyy-MM-dd") ～ @result.FeatureSummary.EndDate.ToString("yyyy-MM-dd")</dd></div>
+                        <div><dt>トークン</dt><dd>@FormatTokens(result.Usage)</dd></div>
+                        <div><dt>概算費用</dt><dd>@FormatCost(result.Usage)</dd></div>
                     </dl>
                 </article>
 

@@ -48,7 +48,7 @@ public sealed class RoutePlannerService
         log.InfoRouteOptimized(plan.VisitCount, plan.OvertimeMinutes, plan.WindowViolationCount, plan.UnassignedVisits.Count);
 
         progress?.Report("Foundryで足順を検証・改善提案中...");
-        var review = await reviewAnalyzer.AnalyzeAsync(plan, common, cancellationToken).ConfigureAwait(false);
+        var (review, usage) = await reviewAnalyzer.AnalyzeAsync(plan, common, cancellationToken).ConfigureAwait(false);
         log.InfoRouteReviewCompleted(review.FeasibilityScore);
 
         return new RoutePlanResult(
@@ -56,6 +56,7 @@ public sealed class RoutePlannerService
             common,
             plan,
             review,
+            usage,
             visits.Take(settings.PreviewRowCount).ToArray());
     }
 }

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="AGENTS.md" />
+    <File Path="Analyzers.ruleset" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="README.md" />
+    <File Path="RoutePlanner.sln.DotSettings" />
+  </Folder>
+  <Project Path="RoutePlanner/RoutePlanner.csproj" Id="b1e7c4a2-9d3f-4c8a-8e21-7a5b9c0d1e2f" />
+</Solution>

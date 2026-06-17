@@ -3,6 +3,7 @@ namespace InspectorChecker.Services;
 using System.Text.Json;
 
 using InspectorChecker.Models;
+using InspectorChecker.Settings;
 
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -23,19 +24,22 @@ public sealed class InspectionFraudAnalyzer
     private readonly ILogger<InspectionFraudAnalyzer> log;
     private readonly string systemPrompt;
     private readonly IChatClient chatClient;
+    private readonly FoundrySettings foundrySettings;
 
     public InspectionFraudAnalyzer(
         ILogger<InspectionFraudAnalyzer> log,
-        IChatClient chatClient)
+        IChatClient chatClient,
+        FoundrySettings foundrySettings)
     {
         this.log = log;
         this.chatClient = chatClient;
+        this.foundrySettings = foundrySettings;
 
         var promptPath = Path.Combine(AppContext.BaseDirectory, "Prompts", "inspection_analyzer.txt");
         systemPrompt = File.ReadAllText(promptPath).Trim();
     }
 
-    public async Task<InspectionAnalysisResult> AnalyzeAsync(
+    public async Task<(InspectionAnalysisResult Analysis, TokenUsageResult Usage)> AnalyzeAsync(
         InspectionFeatureSummary featureSummary,
         IReadOnlyList<SurveyRecord> records,
         CancellationToken cancellationToken = default)
@@ -83,7 +87,29 @@ public sealed class InspectionFraudAnalyzer
         var text = response.Text;
         log.DebugInspectionLlmResponse(text);
 
-        return Normalize(Parse(text), featureSummary.DailySummaries);
+        var usage = BuildUsage(response.Usage);
+        log.InfoTokenUsage(usage.InputTokens, usage.OutputTokens, usage.TotalTokens);
+
+        return (Normalize(Parse(text), featureSummary.DailySummaries), usage);
+    }
+
+    // Foundry が返したトークン使用量を取り出し、USD単価×ドル円レートから概算費用(円)を算出する。
+    // 単価がどちらも未設定(0)、またはドル円レートが未設定(0以下)なら費用は算出しない。
+    private TokenUsageResult BuildUsage(UsageDetails? usage)
+    {
+        var input = usage?.InputTokenCount ?? 0;
+        var output = usage?.OutputTokenCount ?? 0;
+        var total = usage?.TotalTokenCount ?? (input + output);
+
+        decimal? costJpy = null;
+        if (foundrySettings.UsdJpyRate > 0 &&
+            (foundrySettings.InputPricePer1M > 0 || foundrySettings.OutputPricePer1M > 0))
+        {
+            var usd = ((input * foundrySettings.InputPricePer1M) + (output * foundrySettings.OutputPricePer1M)) / 1_000_000m;
+            costJpy = usd * foundrySettings.UsdJpyRate;
+        }
+
+        return new TokenUsageResult(input, output, total, costJpy);
     }
 
     private static string BuildUserPrompt(object payload)

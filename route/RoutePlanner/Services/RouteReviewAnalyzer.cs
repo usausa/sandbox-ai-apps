@@ -27,21 +27,24 @@ public sealed class RouteReviewAnalyzer
     private readonly string systemPrompt;
     private readonly IChatClient chatClient;
     private readonly RoutePlannerSettings settings;
+    private readonly FoundrySettings foundrySettings;
 
     public RouteReviewAnalyzer(
         ILogger<RouteReviewAnalyzer> log,
         IChatClient chatClient,
-        RoutePlannerSettings settings)
+        RoutePlannerSettings settings,
+        FoundrySettings foundrySettings)
     {
         this.log = log;
         this.chatClient = chatClient;
         this.settings = settings;
+        this.foundrySettings = foundrySettings;
 
         var promptPath = Path.Combine(AppContext.BaseDirectory, "Prompts", "route_reviewer.txt");
         systemPrompt = File.ReadAllText(promptPath).Trim();
     }
 
-    public async Task<RouteReviewResult> AnalyzeAsync(
+    public async Task<(RouteReviewResult Review, TokenUsageResult Usage)> AnalyzeAsync(
         RoutePlan plan,
         CommonSettings common,
         CancellationToken cancellationToken = default)
@@ -68,7 +71,29 @@ public sealed class RouteReviewAnalyzer
         var text = response.Text;
         log.DebugRouteLlmResponse(text);
 
-        return Normalize(Parse(text));
+        var usage = BuildUsage(response.Usage);
+        log.InfoTokenUsage(usage.InputTokens, usage.OutputTokens, usage.TotalTokens);
+
+        return (Normalize(Parse(text)), usage);
+    }
+
+    // Foundry が返したトークン使用量を取り出し、USD単価×ドル円レートから概算費用(円)を算出する。
+    // 単価がどちらも未設定(0)、またはドル円レートが未設定(0以下)なら費用は算出しない。
+    private TokenUsageResult BuildUsage(UsageDetails? usage)
+    {
+        var input = usage?.InputTokenCount ?? 0;
+        var output = usage?.OutputTokenCount ?? 0;
+        var total = usage?.TotalTokenCount ?? (input + output);
+
+        decimal? costJpy = null;
+        if (foundrySettings.UsdJpyRate > 0 &&
+            (foundrySettings.InputPricePer1M > 0 || foundrySettings.OutputPricePer1M > 0))
+        {
+            var usd = ((input * foundrySettings.InputPricePer1M) + (output * foundrySettings.OutputPricePer1M)) / 1_000_000m;
+            costJpy = usd * foundrySettings.UsdJpyRate;
+        }
+
+        return new TokenUsageResult(input, output, total, costJpy);
     }
 
     private static object BuildPayload(RoutePlan plan, CommonSettings common, int lookaheadCount)

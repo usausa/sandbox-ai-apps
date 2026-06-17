@@ -24,6 +24,9 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Debug, Message = "Route review LLM response: {response}")]
     public static partial void DebugRouteLlmResponse(this ILogger log, string response);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Token usage. input=[{input}], output=[{output}], total=[{total}]")]
+    public static partial void InfoTokenUsage(this ILogger log, long input, long output, long total);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Route planning started. filePath=[{filePath}]")]
     public static partial void InfoRouteAnalysisStarted(this ILogger log, string filePath);
 

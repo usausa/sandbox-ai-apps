@@ -35,4 +35,7 @@ internal static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Inspection analysis completed. overallScore=[{overallScore}]")]
     public static partial void InfoInspectionAnalysisCompleted(this ILogger log, int overallScore);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Token usage. input=[{input}], output=[{output}], total=[{total}]")]
+    public static partial void InfoTokenUsage(this ILogger log, long input, long output, long total);
 }

@@ -1,5 +1,7 @@
 namespace InspectorChecker.Components.Pages;
 
+using System.Globalization;
+
 using InspectorChecker.Models;
 using InspectorChecker.Services;
 using InspectorChecker.Settings;
@@ -153,6 +155,19 @@ public sealed partial class Check : ComponentBase, IDisposable
     };
 
     private static string FormatPercent(double value) => $"{value * 100:0}%";
+
+    private static string FormatTokens(TokenUsageResult usage) =>
+        $"入力 {usage.InputTokens.ToString("N0", CultureInfo.CurrentCulture)} / 出力 {usage.OutputTokens.ToString("N0", CultureInfo.CurrentCulture)} / 合計 {usage.TotalTokens.ToString("N0", CultureInfo.CurrentCulture)}";
+
+    private static string FormatCost(TokenUsageResult usage)
+    {
+        if (usage.EstimatedCostJpy is not { } cost)
+        {
+            return "単価未設定";
+        }
+
+        return $"約 {cost.ToString("0.######", CultureInfo.CurrentCulture)} 円";
+    }
 
     private static bool IsNearDefault(double current) => Math.Abs(current - 0.97) <= 0.02 + 1e-9;
 
