@@ -830,7 +830,7 @@ h1, h2, p {
    ============================================ */
 
 .route-map {
-    height: 440px;
+    height: 600px;
     border-radius: 18px;
     overflow: hidden;
     border: 1px solid var(--se-border);
