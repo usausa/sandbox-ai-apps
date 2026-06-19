@@ -21,7 +21,7 @@ Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
-    ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default
+    ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default!
 });
 
 // Path
@@ -77,6 +77,8 @@ var app = builder.Build();
 // Ensure upload directory exists
 var uploadDir = Path.GetFullPath(posCheckerSettings.UploadPath);
 Directory.CreateDirectory(uploadDir);
+
+app.UseStaticFiles();
 
 app.UseStaticFiles(new StaticFileOptions
 {

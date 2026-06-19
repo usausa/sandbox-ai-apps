@@ -22,7 +22,12 @@ public sealed partial class Check : ComponentBase, IDisposable
         new("不正: 打ち直し不正", "不正パターン", "fraud", "特定担当者の打直率が突出、時間帯に偏る。", "/samples/fraud-rekey")
     ];
 
-    private static readonly string[] SampleFileNames = ["SalesHeader.csv", "SalesDetail.csv", "Promotion.csv"];
+    private static readonly SampleFile[] SampleFiles =
+    [
+        new("SalesHeader.csv", "売上ヘッダ"),
+        new("SalesDetail.csv", "売上明細"),
+        new("Promotion.csv", "販促")
+    ];
 
     [Inject]
     private PosCheckerService CheckerService { get; set; } = default!;
@@ -312,4 +317,6 @@ public sealed partial class Check : ComponentBase, IDisposable
         string KindClass,
         string Description,
         string BaseUrl);
+
+    private sealed record SampleFile(string FileName, string Label);
 }

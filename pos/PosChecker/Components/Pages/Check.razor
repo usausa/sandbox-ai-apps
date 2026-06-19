@@ -86,9 +86,9 @@
                             <strong>@sample.Title</strong>
                             <span>@sample.Description</span>
                             <div class="ic-sample-links">
-                                @foreach (var fileName in SampleFileNames)
+                                @foreach (var file in SampleFiles)
                                 {
-                                    <a href="@($"{sample.BaseUrl}/{fileName}")" download="@fileName">@fileName</a>
+                                    <a href="@($"{sample.BaseUrl}/{file.FileName}")" download="@file.FileName">@file.Label</a>
                                 }
                             </div>
                         </article>
