@@ -1,6 +1,7 @@
 namespace PosChecker.Components.Pages;
 
 using System.Globalization;
+using System.IO.Compression;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -20,13 +21,6 @@ public sealed partial class Check : ComponentBase, IDisposable
         new("不正: クーポン不正利用", "不正パターン", "fraud", "特定会員が会員限定/アプリクーポンを反復スキャン。", "/samples/fraud-coupon"),
         new("不正: フリー返品不正", "不正パターン", "fraud", "特定担当者の返品率が突出、時間帯に偏る。", "/samples/fraud-return"),
         new("不正: 打ち直し不正", "不正パターン", "fraud", "特定担当者の打直率が突出、時間帯に偏る。", "/samples/fraud-rekey")
-    ];
-
-    private static readonly SampleFile[] SampleFiles =
-    [
-        new("SalesHeader.csv", "売上ヘッダ"),
-        new("SalesDetail.csv", "売上明細"),
-        new("Promotion.csv", "販促")
     ];
 
     [Inject]
@@ -50,7 +44,7 @@ public sealed partial class Check : ComponentBase, IDisposable
     private ElementReference dropZoneRef;
     private bool isDropZoneInitialized;
 
-    private async Task OnCsvFilesChangedAsync(InputFileChangeEventArgs e)
+    private async Task OnUploadAsync(InputFileChangeEventArgs e)
     {
         if (isBusy)
         {
@@ -60,7 +54,7 @@ public sealed partial class Check : ComponentBase, IDisposable
         isBusy = true;
         errorMessage = null;
         result = null;
-        progressMessage = "CSVを保存中...";
+        progressMessage = "ファイルを保存中...";
         StateHasChanged();
 
         cts = new CancellationTokenSource();
@@ -77,66 +71,66 @@ public sealed partial class Check : ComponentBase, IDisposable
             Directory.CreateDirectory(uploadDir);
 
             var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
-            string? headerPath = null;
-            string? detailPath = null;
-            string? promotionPath = null;
+            var paths = new Dictionary<CsvKind, string>();
 
             foreach (var file in e.GetMultipleFiles(maximumFileCount: 10))
             {
-                if (!string.Equals(Path.GetExtension(file.Name), ".csv", StringComparison.OrdinalIgnoreCase))
+                var ext = Path.GetExtension(file.Name);
+                if (string.Equals(ext, ".zip", StringComparison.OrdinalIgnoreCase))
                 {
-                    continue;
-                }
+                    // ZIP はそのままアップロードし、中の3ビューCSVを解凍して処理する。
+                    using var buffer = new MemoryStream();
+                    await using (var src = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024))
+                    {
+                        await src.CopyToAsync(buffer, cts.Token);
+                    }
 
-                var savedPath = Path.Combine(uploadDir, $"pos-{stamp}-{file.Name}");
-                await using (var dest = File.Create(savedPath))
-                await using (var src = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024))
-                {
-                    await src.CopyToAsync(dest, cts.Token);
-                }
+                    buffer.Position = 0;
+                    using var archive = new ZipArchive(buffer, ZipArchiveMode.Read);
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (!entry.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
 
-                switch (await ClassifyAsync(savedPath, cts.Token))
+                        await using var entryStream = await entry.OpenAsync(cts.Token);
+                        await SaveAndClassifyAsync(entryStream, uploadDir, stamp, entry.Name, paths, cts.Token);
+                    }
+                }
+                else if (string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase))
                 {
-                    case CsvKind.Header:
-                        headerPath = savedPath;
-                        break;
-                    case CsvKind.Detail:
-                        detailPath = savedPath;
-                        break;
-                    case CsvKind.Promotion:
-                        promotionPath = savedPath;
-                        break;
-                    default:
-                        break;
+                    await using var src = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+                    await SaveAndClassifyAsync(src, uploadDir, stamp, file.Name, paths, cts.Token);
                 }
             }
 
             var missing = new List<string>();
-            if (headerPath is null)
+            if (!paths.ContainsKey(CsvKind.Header))
             {
                 missing.Add("SalesHeader");
             }
 
-            if (detailPath is null)
+            if (!paths.ContainsKey(CsvKind.Detail))
             {
                 missing.Add("SalesDetail");
             }
 
-            if (promotionPath is null)
+            if (!paths.ContainsKey(CsvKind.Promotion))
             {
                 missing.Add("Promotion");
             }
 
             if (missing.Count > 0)
             {
-                errorMessage = $"3種類のCSVをまとめて選択してください（不足: {string.Join(", ", missing)}）。";
+                errorMessage = $"ZIP（または3ビューCSV）に SalesHeader/SalesDetail/Promotion が揃っていません（不足: {string.Join(", ", missing)}）。";
                 return;
             }
 
-            Logger.InfoCsvUploaded(headerPath!);
+            Logger.InfoCsvUploaded(paths[CsvKind.Header]);
             Logger.InfoCheckStarted();
 
-            result = await CheckerService.AnalyzeAsync(headerPath!, detailPath!, promotionPath!, progress, cts.Token);
+            result = await CheckerService.AnalyzeAsync(paths[CsvKind.Header], paths[CsvKind.Detail], paths[CsvKind.Promotion], progress, cts.Token);
 
             var suspiciousCashierCount = result.Analysis.CashierResults.Count(x => x.Score >= 70);
             Logger.InfoCheckCompleted(suspiciousCashierCount);
@@ -144,6 +138,11 @@ public sealed partial class Check : ComponentBase, IDisposable
         catch (OperationCanceledException) when (cts?.IsCancellationRequested == true)
         {
             Logger.InfoCheckCancelled();
+        }
+        catch (InvalidDataException ex)
+        {
+            Logger.ErrorCheckFailed(ex, ex.Message);
+            errorMessage = $"ZIPの展開に失敗しました: {ex.Message}";
         }
         catch (IOException ex)
         {
@@ -164,6 +163,28 @@ public sealed partial class Check : ComponentBase, IDisposable
             await InvokeAsync(StateHasChanged);
         }
 #pragma warning restore CA1031
+    }
+
+    // ストリームを保存し、先頭行で3ビューを判別して種別→パスに登録する。
+    private static async Task SaveAndClassifyAsync(
+        Stream source,
+        string uploadDir,
+        string stamp,
+        string name,
+        Dictionary<CsvKind, string> paths,
+        CancellationToken cancellationToken)
+    {
+        var savedPath = Path.Combine(uploadDir, $"pos-{stamp}-{Path.GetFileName(name)}");
+        await using (var dest = File.Create(savedPath))
+        {
+            await source.CopyToAsync(dest, cancellationToken);
+        }
+
+        var kind = await ClassifyAsync(savedPath, cancellationToken);
+        if (kind != CsvKind.Unknown)
+        {
+            paths[kind] = savedPath;
+        }
     }
 
     // 先頭行のヘッダ列名で3ビューを判別する。
@@ -317,6 +338,4 @@ public sealed partial class Check : ComponentBase, IDisposable
         string KindClass,
         string Description,
         string BaseUrl);
-
-    private sealed record SampleFile(string FileName, string Label);
 }

@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.IO.Compression;
 
 using Azure.AI.OpenAI;
 using Azure.Identity;
@@ -95,6 +96,59 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// サンプルCSV(3ビュー)を1つのZIPにまとめてダウンロードさせる。
+// 静的アセットのマニフェスト構成に依存せず、確実に配信するための動的エンドポイント。
+var sampleSets = new HashSet<string>(StringComparer.Ordinal)
+{
+    "normal", "fraud-point", "fraud-cart", "fraud-coupon", "fraud-return", "fraud-rekey"
+};
+var sampleFileNames = new[] { "SalesHeader.csv", "SalesDetail.csv", "Promotion.csv" };
+
+app.MapGet("/samples/{set}/download", (string set) =>
+{
+    if (!sampleSets.Contains(set))
+    {
+        return Results.NotFound();
+    }
+
+    string? dir = null;
+    foreach (var root in new[] { AppContext.BaseDirectory, app.Environment.ContentRootPath })
+    {
+        var candidate = Path.Combine(root, "Samples", set);
+        if (Directory.Exists(candidate))
+        {
+            dir = candidate;
+            break;
+        }
+    }
+
+    if (dir is null)
+    {
+        return Results.NotFound();
+    }
+
+    using var buffer = new MemoryStream();
+    using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
+    {
+        foreach (var name in sampleFileNames)
+        {
+            var path = Path.Combine(dir, name);
+            if (!File.Exists(path))
+            {
+                continue;
+            }
+
+            var entry = zip.CreateEntry(name);
+            using var entryStream = entry.Open();
+            using var fileStream = File.OpenRead(path);
+            fileStream.CopyTo(entryStream);
+        }
+    }
+
+    return Results.File(buffer.ToArray(), "application/zip", $"pos-sample-{set}.zip");
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

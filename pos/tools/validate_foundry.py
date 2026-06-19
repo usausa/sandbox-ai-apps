@@ -16,7 +16,7 @@ from collections import defaultdict
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SAMPLES_DIR = os.path.join(ROOT, "PosChecker", "wwwroot", "samples")
+SAMPLES_DIR = os.path.join(ROOT, "PosChecker", "Samples")
 PROMPT_PATH = os.path.join(ROOT, "PosChecker", "Prompts", "pos_analyzer.txt")
 
 ENDPOINT = "https://foundry-usausa-resource.services.ai.azure.com"

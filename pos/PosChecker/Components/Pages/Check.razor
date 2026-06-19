@@ -7,16 +7,16 @@
     <div class="ic-actions">
         <div class="ic-dropzone-shell">
             <label class="ic-dropzone @(isBusy ? "is-busy" : string.Empty)"
-                   title="SalesHeader / SalesDetail / Promotion の3ビューCSVをまとめてアップロード"
+                   title="サンプルのZIP（3ビューCSVを内包）をそのままアップロード"
                    @ref="dropZoneRef">
                 <div class="ic-dropzone-icon">
-                    <i class="bi bi-file-earmark-arrow-up"></i>
+                    <i class="bi bi-file-earmark-zip"></i>
                 </div>
                 <div class="ic-dropzone-copy">
-                    <strong>3ビューCSVをまとめてアップロード</strong>
-                    <span>SalesHeader / SalesDetail / Promotion を選択、またはこのエリアへドラッグ＆ドロップ</span>
+                    <strong>サンプルZIPをアップロード</strong>
+                    <span>ダウンロードしたZIP（SalesHeader / SalesDetail / Promotion を内包）を選択、またはドラッグ＆ドロップ</span>
                 </div>
-                <InputFile @key="inputFileKey" OnChange="OnCsvFilesChangedAsync" accept=".csv,text/csv" multiple class="ic-upload-input" disabled="@isBusy" />
+                <InputFile @key="inputFileKey" OnChange="OnUploadAsync" accept=".zip,.csv" multiple class="ic-upload-input" disabled="@isBusy" />
             </label>
         </div>
         @if (result is not null && !isBusy)
@@ -63,7 +63,7 @@
                 </div>
                 <h1>POSトランザクションから不正一覧の5事象を検出</h1>
                 <p>
-                    3ビューのCSV（SalesHeader / SalesDetail / Promotion）をまとめてアップロードすると、担当者×店舗・会員の特徴量を先に集計し、
+                    3ビューCSV（SalesHeader / SalesDetail / Promotion）を内包したZIPをアップロードすると、担当者×店舗・会員の特徴量を先に集計し、
                     その要約と生データを Foundry の LLM に渡して不正確率を判定します。判定は「店舗×担当者」を主軸に、ポイント/クーポン不正は会員も評価します。
                 </p>
                 <div class="ic-empty-format">
@@ -75,23 +75,18 @@
                 <div class="ic-section-header">
                     <div>
                         <h2>デモ用サンプルCSV</h2>
-                        <p>各セットは SalesHeader / SalesDetail / Promotion の3ファイルです。3つとも保存してからまとめてアップロードしてください。</p>
+                        <p>各セットは3ビューCSVを内包したZIPです。ダウンロードして、そのままアップロードしてください。</p>
                     </div>
                 </div>
                 <div class="ic-sample-grid">
                     @foreach (var sample in SampleSets)
                     {
-                        <article class="ic-sample-card">
+                        <a class="ic-sample-card" href="@($"{sample.BaseUrl}/download")">
                             <span class="ic-sample-kind @sample.KindClass">@sample.KindLabel</span>
                             <strong>@sample.Title</strong>
                             <span>@sample.Description</span>
-                            <div class="ic-sample-links">
-                                @foreach (var file in SampleFiles)
-                                {
-                                    <a href="@($"{sample.BaseUrl}/{file.FileName}")" download="@file.FileName">@file.Label</a>
-                                }
-                            </div>
-                        </article>
+                            <span class="ic-sample-download"><i class="bi bi-download"></i> ダウンロード (ZIP)</span>
+                        </a>
                     }
                 </div>
             </section>

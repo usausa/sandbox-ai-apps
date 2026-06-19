@@ -13,7 +13,7 @@ import random
 from datetime import date, time, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SAMPLES_DIR = os.path.join(ROOT, "PosChecker", "wwwroot", "samples")
+SAMPLES_DIR = os.path.join(ROOT, "PosChecker", "Samples")
 
 STORES = ["0001", "0002"]
 CASHIERS = {

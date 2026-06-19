@@ -21,7 +21,7 @@ CSV 仕様の正本は `README.md` §CSV仕様です。
 
 - **判定主軸 = 店舗×担当者**（担当者ごとに不正スコアを算出）。
 - **ポイント不正・クーポン不正は会員別にも評価**し、不正シグナルで裏付けのある会員のみフラグする。
-- 入力は **3つの結合ビューCSV**（SalesHeader / SalesDetail / Promotion）を **まとめてアップロード**する。
+- 入力は **3つの結合ビューCSV**（SalesHeader / SalesDetail / Promotion）を内包した **ZIP をそのままアップロード**する（解凍して処理）。
   複数店舗・複数担当者・複数会員を1ファイル群として扱う。
 
 ---
@@ -226,7 +226,7 @@ PosChecker/
 ├─ Settings/      … FoundrySettings / PosCheckerSettings
 ├─ Prompts/pos_analyzer.txt
 ├─ Components/Pages/Check.razor(.cs)
-└─ wwwroot/samples/<set>/{SalesHeader,SalesDetail,Promotion}.csv
+└─ Samples/<set>/{SalesHeader,SalesDetail,Promotion}.csv  … 出力にコピーされ、/samples/<set>/download で ZIP 配信
 tools/
 ├─ generate_samples.py  … サンプル生成（6セット×3CSV）
 └─ validate_foundry.py  … Foundry 検証
@@ -257,7 +257,7 @@ public sealed record TokenUsageResult(long InputTokens, long OutputTokens, long 
 
 ### 画面（Check.razor）
 
-3ファイルを `InputFile multiple` でまとめてアップロード（ヘッダ列で自動判別）。表示: 総合スコア、担当者スコア
+ダウンロードした ZIP（3ビューCSVを内包）をそのままアップロードし、解凍してヘッダ列で自動判別。表示: 総合スコア、担当者スコア
 （店舗×担当者）、会員フラグ、取引種別/金種の構成、不正シグナル、**トークン使用量・概算費用**、売上CSVプレビュー、
 サンプルセットDL。
 

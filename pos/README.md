@@ -41,7 +41,7 @@ Blazor 画面で表示
 
 ## CSV 仕様（最終仕様）
 
-UTF-8・ヘッダ付き。3つのビューCSVを **まとめてアップロード**します（ヘッダ列名で自動判別）。
+UTF-8・ヘッダ付き。3つのビューCSVを内包した **ZIP をそのままアップロード**します（解凍してヘッダ列名で自動判別。CSVを直接複数選択しても可）。
 列名は英語 PascalCase。enum 列は下表の英語値を使います。日付は `yyyy-MM-dd`、時刻は `HH:mm:ss`。
 
 ### 1. SalesHeader.csv — 売上取引ヘッダ
@@ -147,7 +147,7 @@ StoreCode,SalesDate,PosNo,SlipNo,PlanCode,PlanName,CouponCode,ScannedMemberCode,
 
 ## サンプルデータ
 
-画面からダウンロードできるサンプルは6セット（各 SalesHeader/SalesDetail/Promotion の3CSV）。複数店舗・複数担当者・複数会員・約1週間。
+画面から各セットを **ZIP（3ビューCSVを内包）** でダウンロードし、その ZIP をそのままアップロードします。6セット・複数店舗・複数担当者・複数会員・約1週間。サンプル本体は `PosChecker/Samples/<セット>/` に置かれ、`/samples/<セット>/download` で ZIP 化して配信します。
 
 | セット | 種別 | 設計意図 |
 |---|---|---|
