@@ -63,7 +63,7 @@ builder.Services.AddSingleton<IChatClient>(sp =>
 });
 
 // Application services
-builder.Services.AddSingleton<TransactionCsvLoader>();
+builder.Services.AddSingleton<PosDataLoader>();
 builder.Services.AddSingleton<PosFeatureSummaryBuilder>();
 builder.Services.AddSingleton<PosFraudAnalyzer>();
 builder.Services.AddSingleton<PosCheckerService>();

@@ -30,9 +30,12 @@ internal static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "Transaction CSV rows loaded. rowCount=[{rowCount}], cashierCount=[{cashierCount}]")]
     public static partial void InfoPosRowsLoaded(this ILogger log, int rowCount, int cashierCount);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Pos feature summary built. dayCount=[{dayCount}], anomalyCount=[{anomalyCount}]")]
-    public static partial void InfoFeatureSummaryBuilt(this ILogger log, int dayCount, int anomalyCount);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pos feature summary built. cashierCount=[{cashierCount}], signalCount=[{signalCount}]")]
+    public static partial void InfoFeatureSummaryBuilt(this ILogger log, int cashierCount, int signalCount);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Pos analysis completed. overallScore=[{overallScore}]")]
     public static partial void InfoPosAnalysisCompleted(this ILogger log, int overallScore);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pos token usage. input=[{input}], output=[{output}], total=[{total}]")]
+    public static partial void InfoTokenUsage(this ILogger log, long input, long output, long total);
 }

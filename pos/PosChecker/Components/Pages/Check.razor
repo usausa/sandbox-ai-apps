@@ -7,16 +7,16 @@
     <div class="ic-actions">
         <div class="ic-dropzone-shell">
             <label class="ic-dropzone @(isBusy ? "is-busy" : string.Empty)"
-                   title="担当者1名分の複数営業日トランザクションCSVをアップロード"
+                   title="SalesHeader / SalesDetail / Promotion の3ビューCSVをまとめてアップロード"
                    @ref="dropZoneRef">
                 <div class="ic-dropzone-icon">
                     <i class="bi bi-file-earmark-arrow-up"></i>
                 </div>
                 <div class="ic-dropzone-copy">
-                    <strong>トランザクションCSVをアップロード</strong>
-                    <span>クリックして選択、またはこのエリアへCSVをドラッグ＆ドロップ</span>
+                    <strong>3ビューCSVをまとめてアップロード</strong>
+                    <span>SalesHeader / SalesDetail / Promotion を選択、またはこのエリアへドラッグ＆ドロップ</span>
                 </div>
-                <InputFile @key="inputFileKey" OnChange="OnCsvFileChangedAsync" accept=".csv,text/csv" class="ic-upload-input" disabled="@isBusy" />
+                <InputFile @key="inputFileKey" OnChange="OnCsvFilesChangedAsync" accept=".csv,text/csv" multiple class="ic-upload-input" disabled="@isBusy" />
             </label>
         </div>
         @if (result is not null && !isBusy)
@@ -61,13 +61,13 @@
                 <div class="ic-empty-icon">
                     <i class="bi bi-shield-exclamation"></i>
                 </div>
-                <h1>POSレジ操作ログから従業員の不正操作を検出</h1>
+                <h1>POSトランザクションから不正一覧の5事象を検出</h1>
                 <p>
-                    トランザクションCSVをアップロードすると、取引種別の構成・取消/返品/ポイントの特徴量・シーケンス異常を先に集計し、
-                    その要約と生データを Foundry の LLM に渡して不正確率を判定します。判定は「1営業日×1従業員」単位です。
+                    3ビューのCSV（SalesHeader / SalesDetail / Promotion）をまとめてアップロードすると、担当者×店舗・会員の特徴量を先に集計し、
+                    その要約と生データを Foundry の LLM に渡して不正確率を判定します。判定は「店舗×担当者」を主軸に、ポイント/クーポン不正は会員も評価します。
                 </p>
                 <div class="ic-empty-format">
-                    CSV列は <code>BusinessDate,CashierId,TransactionId,Time,Type,Amount,ItemCount,PaymentMethod,DiscountAmount,PointsEarned,PointsRedeemed,MembershipId,OriginalTransactionId,HasReceipt</code> です。
+                    対象事象: <code>ポイント不正付与 / かご抜け / クーポン不正利用 / フリー返品不正 / 打ち直し不正</code>
                 </div>
             </section>
 
@@ -75,17 +75,23 @@
                 <div class="ic-section-header">
                     <div>
                         <h2>デモ用サンプルCSV</h2>
-                        <p>正常2種、不正3種を用意しています。ローカルで保存してからアップロードしてください。</p>
+                        <p>各セットは SalesHeader / SalesDetail / Promotion の3ファイルです。3つとも保存してからまとめてアップロードしてください。</p>
                     </div>
                 </div>
                 <div class="ic-sample-grid">
-                    @foreach (var sample in SampleFiles)
+                    @foreach (var sample in SampleSets)
                     {
-                        <a class="ic-sample-card" href="@sample.Url" download="@sample.FileName">
+                        <article class="ic-sample-card">
                             <span class="ic-sample-kind @sample.KindClass">@sample.KindLabel</span>
                             <strong>@sample.Title</strong>
                             <span>@sample.Description</span>
-                        </a>
+                            <div class="ic-sample-links">
+                                @foreach (var fileName in SampleFileNames)
+                                {
+                                    <a href="@($"{sample.BaseUrl}/{fileName}")" download="@fileName">@fileName</a>
+                                }
+                            </div>
+                        </article>
                     }
                 </div>
             </section>
@@ -103,11 +109,12 @@
                 <article class="ic-stat-card">
                     <h2>アップロード概要</h2>
                     <dl class="ic-stat-list">
-                        <div><dt>ファイル</dt><dd>@result.UploadedFileName</dd></div>
-                        <div><dt>取引数</dt><dd>@result.FeatureSummary.RecordCount.ToString("N0")</dd></div>
-                        <div><dt>担当者</dt><dd>@result.FeatureSummary.CashierId</dd></div>
-                        <div><dt>営業日数</dt><dd>@result.FeatureSummary.BusinessDayCount.ToString("N0")</dd></div>
+                        <div><dt>取引数</dt><dd>@result.FeatureSummary.TransactionCount.ToString("N0")</dd></div>
+                        <div><dt>店舗 / 担当者</dt><dd>@result.FeatureSummary.StoreCount / @result.FeatureSummary.CashierCount</dd></div>
+                        <div><dt>会員数</dt><dd>@result.FeatureSummary.MemberCount.ToString("N0")</dd></div>
                         <div><dt>期間</dt><dd>@result.FeatureSummary.StartDate.ToString("yyyy-MM-dd") ～ @result.FeatureSummary.EndDate.ToString("yyyy-MM-dd")</dd></div>
+                        <div><dt>トークン</dt><dd>@FormatTokens(result.Usage)</dd></div>
+                        <div><dt>概算費用</dt><dd>@FormatCost(result.Usage)</dd></div>
                     </dl>
                 </article>
 
@@ -142,77 +149,76 @@
             <section class="ic-section">
                 <div class="ic-section-header">
                     <div>
-                        <h2>日別スコア</h2>
-                        <p>高スコア日から並べています。1営業日＝1従業員の判定単位です。</p>
+                        <h2>担当者スコア（店舗×担当者）</h2>
+                        <p>高スコア順に並べています。担当者単位が判定の主軸です。</p>
                     </div>
                 </div>
                 <div class="ic-table-wrap">
                     <table class="ic-table">
                         <thead>
                             <tr>
-                                <th>営業日</th>
+                                <th>店舗 / 担当者</th>
                                 <th class="ic-col-score">スコア</th>
                                 <th>機械集計の特徴</th>
-                                <th>疑わしい取引</th>
+                                <th>該当事象</th>
                                 <th>LLM理由</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var day in result.Analysis.DailyResults)
+                            @foreach (var cashier in result.Analysis.CashierResults)
                             {
-                                var feature = GetDailyFeature(day.BusinessDate);
-                                <tr class="@GetRowClass(day.Score)">
-                                    <td>@day.BusinessDate.ToString("yyyy-MM-dd")</td>
+                                var feature = GetCashierFeature(cashier.StoreCode, cashier.CashierCode);
+                                <tr class="@GetRowClass(cashier.Score)">
+                                    <td>
+                                        <div class="ic-feature-stack">
+                                            <span>@cashier.StoreCode / @cashier.CashierCode</span>
+                                            <span class="ic-muted">@cashier.CashierName</span>
+                                        </div>
+                                    </td>
                                     <td class="ic-col-score">
-                                        <span class="ic-score-pill @GetScoreClass(day.Score)">@day.Score</span>
+                                        <span class="ic-score-pill @GetScoreClass(cashier.Score)">@cashier.Score</span>
                                     </td>
                                     <td>
                                         @if (feature is not null)
                                         {
                                             <div class="ic-feature-stack">
-                                                <span>取引 @(feature.TransactionCount)件 / 売上 @(feature.SalesCount)件 @FormatYen(feature.SalesAmount)</span>
-                                                <span>Void率 @FormatPercent(feature.VoidRatio)（@(feature.VoidCount)件 @FormatYen(feature.VoidAmount)） / 返金率 @FormatPercent(feature.ReturnRatio)（@(feature.ReturnCount)件 @FormatYen(feature.ReturnAmount)）</span>
-                                                <span>レシート無返品 @(feature.NoReceiptReturnCount)件（@FormatPercent(feature.NoReceiptReturnRatio)） / 現金返金 @FormatYen(feature.CashReturnAmount)</span>
-                                                <span>NoSale @(feature.NoSaleCount)件 / 値引 @FormatYen(feature.DiscountAmount)（@FormatPercent(feature.DiscountRatio)）</span>
-                                                <span>ポイント 利用 @feature.PointsRedeemed / 付与 @feature.PointsEarned</span>
-                                                @if (feature.NonMemberPointsEarnedCount > 0 || feature.NonMemberPointsRedeemedCount > 0 || feature.PointsRedeemedCashCount > 0)
+                                                <span>取引 @(feature.TransactionCount)件 / 売上 @(feature.SalesCount)件</span>
+                                                <span>返品 @(feature.ReturnCount)件（率 @FormatPercent(feature.ReturnRatio) / @FormatYen(feature.ReturnAmount)） / 打直 @(feature.RekeyCount)件（率 @FormatPercent(feature.RekeyRatio)）</span>
+                                                @if (feature.TopMemberCode is not null && feature.MemberConcentration > 0)
                                                 {
-                                                    <span>会員不在 付与@(feature.NonMemberPointsEarnedCount)件 / 利用@(feature.NonMemberPointsRedeemedCount)件 / 現金利用@(feature.PointsRedeemedCashCount)件</span>
+                                                    <span>会員偏り @FormatPercent(feature.MemberConcentration)（@feature.TopMemberCode / @(feature.TopMemberSalesCount)件）</span>
                                                 }
-                                                @if (feature.RedeemMembershipConcentration > 0 && feature.TopRedeemMembershipId is not null)
+                                                @if (feature.SameItemRepeatCount > 0)
                                                 {
-                                                    <span>利用会員偏り @FormatPercent(feature.RedeemMembershipConcentration)（@feature.TopRedeemMembershipId）</span>
+                                                    <span>同一商品複数購入 @(feature.SameItemRepeatCount)件</span>
                                                 }
-                                                @if (feature.RepeatedRefundAmountCount > 0)
+                                                @if (feature.ShortIntervalSameMemberCount > 0)
                                                 {
-                                                    <span>同額返品の反復 @(feature.RepeatedRefundAmountCount)件</span>
+                                                    <span>短時間連続会計 @(feature.ShortIntervalSameMemberCount)件</span>
                                                 }
-                                                @if (feature.TopReturnMembershipId is not null)
+                                                @if (feature.AfterHoursReturnRekeyCount > 0)
                                                 {
-                                                    <span>返金偏り会員 @feature.TopReturnMembershipId</span>
-                                                }
-                                                @if (feature.SaleThenVoidCount > 0)
-                                                {
-                                                    <span>売上直後取消 @(feature.SaleThenVoidCount)件</span>
-                                                }
-                                                @if (feature.AfterHoursCount > 0)
-                                                {
-                                                    <span>閑散帯操作 @(feature.AfterHoursCount)件</span>
+                                                    <span>営業時間外の返品/打直 @(feature.AfterHoursReturnRekeyCount)件</span>
                                                 }
                                             </div>
                                         }
                                     </td>
                                     <td>
-                                        @if (day.SuspiciousTransactionIds.Count == 0)
+                                        @if (cashier.Scenarios.Count == 0)
                                         {
                                             <span class="ic-muted">-</span>
                                         }
                                         else
                                         {
-                                            <span>@string.Join(", ", day.SuspiciousTransactionIds)</span>
+                                            <div class="ic-pattern-list">
+                                                @foreach (var scenario in cashier.Scenarios)
+                                                {
+                                                    <span class="ic-pattern-chip">@ScenarioLabel(scenario)</span>
+                                                }
+                                            </div>
                                         }
                                     </td>
-                                    <td>@day.Reason</td>
+                                    <td>@cashier.Reason</td>
                                 </tr>
                             }
                         </tbody>
@@ -220,12 +226,56 @@
                 </div>
             </section>
 
+            @if (result.Analysis.MemberResults.Count > 0)
+            {
+                <section class="ic-section">
+                    <div class="ic-section-header">
+                        <div>
+                            <h2>会員フラグ（ポイント/クーポン不正）</h2>
+                            <p>ポイント不正付与・クーポン反復利用の疑いがある会員です。</p>
+                        </div>
+                    </div>
+                    <div class="ic-table-wrap">
+                        <table class="ic-table">
+                            <thead>
+                                <tr>
+                                    <th>会員</th>
+                                    <th class="ic-col-score">スコア</th>
+                                    <th>該当事象</th>
+                                    <th>LLM理由</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var member in result.Analysis.MemberResults)
+                                {
+                                    <tr class="@GetRowClass(member.Score)">
+                                        <td>@member.MemberCode</td>
+                                        <td class="ic-col-score">
+                                            <span class="ic-score-pill @GetScoreClass(member.Score)">@member.Score</span>
+                                        </td>
+                                        <td>
+                                            <div class="ic-pattern-list">
+                                                @foreach (var scenario in member.Scenarios)
+                                                {
+                                                    <span class="ic-pattern-chip">@ScenarioLabel(scenario)</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>@member.Reason</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+
             <section class="ic-detail-grid">
                 <section class="ic-section">
                     <div class="ic-section-header">
                         <div>
                             <h2>取引種別の構成</h2>
-                            <p>取消・返品・レジ開放の比率が高いほど、現金操作の温床になりやすくなります。</p>
+                            <p>返品の比率が高い担当者・店舗ほど現金操作の温床になりやすくなります。</p>
                         </div>
                     </div>
                     <div class="ic-table-wrap">
@@ -256,28 +306,28 @@
                 <section class="ic-section">
                     <div class="ic-section-header">
                         <div>
-                            <h2>支払方法の構成</h2>
-                            <p>現金は最も着服されやすいため、返金・ポイント利用の現金偏りに注目します。</p>
+                            <h2>金種の構成</h2>
+                            <p>現金は最も着服されやすいため、返品・ポイント利用の現金偏りに注目します。</p>
                         </div>
                     </div>
                     <div class="ic-table-wrap">
                         <table class="ic-table">
                             <thead>
                                 <tr>
-                                    <th>支払方法</th>
+                                    <th>金種</th>
                                     <th>件数</th>
                                     <th>金額</th>
                                     <th>構成比</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var payment in result.FeatureSummary.PaymentDistribution)
+                                @foreach (var tender in result.FeatureSummary.TenderDistribution)
                                 {
                                     <tr>
-                                        <td>@PaymentLabel(payment.Method)</td>
-                                        <td>@payment.Count.ToString("N0")</td>
-                                        <td>@FormatYen(payment.Amount)</td>
-                                        <td>@FormatPercent(payment.Ratio)</td>
+                                        <td>@TenderLabel(tender.Tender)</td>
+                                        <td>@tender.Count.ToString("N0")</td>
+                                        <td>@FormatYen(tender.Amount)</td>
+                                        <td>@FormatPercent(tender.Ratio)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -289,22 +339,33 @@
             <section class="ic-section">
                 <div class="ic-section-header">
                     <div>
-                        <h2>検出されたシーケンス異常</h2>
-                        <p>売上直後の取消・ポイント利用直後の取消・同額返品の反復などの並びを抽出します。</p>
+                        <h2>検出された不正シグナル</h2>
+                        <p>担当者の会員偏り・同一商品複数購入・クーポン反復・高返品率/打直率などを決定論的に抽出します。</p>
                     </div>
                 </div>
-                @if (result.FeatureSummary.SequenceAnomalies.Count == 0)
+                @if (result.FeatureSummary.FraudSignals.Count == 0)
                 {
-                    <div class="ic-placeholder">シーケンス異常は検出されませんでした。</div>
+                    <div class="ic-placeholder">不正シグナルは検出されませんでした。</div>
                 }
                 else
                 {
                     <div class="ic-template-list">
-                        @foreach (var anomaly in result.FeatureSummary.SequenceAnomalies)
+                        @foreach (var signal in result.FeatureSummary.FraudSignals)
                         {
                             <article class="ic-template-card">
-                                <strong>@anomaly.Date.ToString("yyyy-MM-dd") ・ @AnomalyLabel(anomaly.Kind)</strong>
-                                <p>@AnomalyDetail(anomaly)</p>
+                                <strong>@SignalLabel(signal.Kind)</strong>
+                                <p>
+                                    店舗 @signal.StoreCode
+                                    @if (signal.CashierCode is not null)
+                                    {
+                                        <span> ・ 担当者 @signal.CashierCode</span>
+                                    }
+                                    @if (signal.MemberCode is not null)
+                                    {
+                                        <span> ・ 会員 @signal.MemberCode</span>
+                                    }
+                                </p>
+                                <p>@signal.Detail</p>
                             </article>
                         }
                     </div>
@@ -314,36 +375,38 @@
             <section class="ic-section">
                 <div class="ic-section-header">
                     <div>
-                        <h2>CSVプレビュー</h2>
-                        <p>アップロードした先頭 @result.PreviewRows.Count.ToString("N0") 行です。</p>
+                        <h2>売上CSVプレビュー</h2>
+                        <p>アップロードした先頭 @result.PreviewTransactions.Count.ToString("N0") 取引です。</p>
                     </div>
                 </div>
                 <div class="ic-table-wrap">
                     <table class="ic-table">
                         <thead>
                             <tr>
-                                <th>営業日</th>
+                                <th>店舗</th>
+                                <th>日付</th>
                                 <th>時刻</th>
-                                <th>取引ID</th>
+                                <th>担当者</th>
                                 <th>種別</th>
+                                <th>金種</th>
                                 <th>金額</th>
-                                <th>支払</th>
-                                <th>ポイント 利用/付与</th>
                                 <th>会員</th>
+                                <th>明細数</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var row in result.PreviewRows)
+                            @foreach (var tx in result.PreviewTransactions)
                             {
                                 <tr>
-                                    <td>@row.BusinessDate.ToString("yyyy-MM-dd")</td>
-                                    <td>@row.Time.ToString("HH:mm:ss")</td>
-                                    <td>@row.TransactionId</td>
-                                    <td>@TypeLabel(row.Type)</td>
-                                    <td>@FormatYen(row.Amount)</td>
-                                    <td>@PaymentLabel(row.PaymentMethod)</td>
-                                    <td>@row.PointsRedeemed / @row.PointsEarned</td>
-                                    <td>@(row.MembershipId ?? "-")</td>
+                                    <td>@tx.Header.StoreCode</td>
+                                    <td>@tx.Header.SalesDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@tx.Header.SystemTime.ToString("HH:mm:ss")</td>
+                                    <td>@tx.Header.CashierCode</td>
+                                    <td>@TypeLabel(tx.Header.TransactionType)</td>
+                                    <td>@TenderLabel(tx.Header.TenderType)</td>
+                                    <td>@FormatYen(tx.Header.TotalAmount)</td>
+                                    <td>@(tx.Header.MemberCode ?? "-")</td>
+                                    <td>@tx.Details.Count</td>
                                 </tr>
                             }
                         </tbody>

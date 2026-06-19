@@ -16,6 +16,9 @@ public sealed record PosAnalysisResult
     [JsonPropertyName("suspicious_patterns")]
     public IReadOnlyList<string> SuspiciousPatterns { get; init; } = [];
 
-    [JsonPropertyName("daily_results")]
-    public IReadOnlyList<DailyRiskResult> DailyResults { get; init; } = [];
+    [JsonPropertyName("cashier_results")]
+    public IReadOnlyList<CashierRiskResult> CashierResults { get; init; } = [];
+
+    [JsonPropertyName("member_results")]
+    public IReadOnlyList<MemberRiskResult> MemberResults { get; init; } = [];
 }

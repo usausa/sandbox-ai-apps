@@ -7,14 +7,14 @@ using PosChecker.Settings;
 
 public sealed class PosCheckerService
 {
-    private readonly TransactionCsvLoader loader;
+    private readonly PosDataLoader loader;
     private readonly PosFeatureSummaryBuilder summaryBuilder;
     private readonly PosFraudAnalyzer analyzer;
     private readonly PosCheckerSettings settings;
     private readonly ILogger<PosCheckerService> log;
 
     public PosCheckerService(
-        TransactionCsvLoader loader,
+        PosDataLoader loader,
         PosFeatureSummaryBuilder summaryBuilder,
         PosFraudAnalyzer analyzer,
         PosCheckerSettings settings,
@@ -28,31 +28,41 @@ public sealed class PosCheckerService
     }
 
     public async Task<PosCheckResult> AnalyzeAsync(
-        string filePath,
+        string headerPath,
+        string detailPath,
+        string promotionPath,
         IProgress<string> progress,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(filePath);
+        ArgumentNullException.ThrowIfNull(headerPath);
+        ArgumentNullException.ThrowIfNull(detailPath);
+        ArgumentNullException.ThrowIfNull(promotionPath);
         ArgumentNullException.ThrowIfNull(progress);
 
-        log.InfoPosAnalysisStarted(filePath);
+        log.InfoPosAnalysisStarted(headerPath);
 
         progress.Report("CSVを読み込み中...");
-        await using var stream = File.OpenRead(filePath);
-        var records = await loader.LoadAsync(stream, cancellationToken).ConfigureAwait(false);
+        await using var headerStream = File.OpenRead(headerPath);
+        await using var detailStream = File.OpenRead(detailPath);
+        await using var promotionStream = File.OpenRead(promotionPath);
+        var dataset = await loader.LoadAsync(headerStream, detailStream, promotionStream, cancellationToken).ConfigureAwait(false);
 
-        var cashierCount = records.Select(x => x.CashierId).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        log.InfoPosRowsLoaded(records.Count, cashierCount);
+        var cashierCount = dataset.Transactions
+            .Select(x => (x.Header.StoreCode, x.Header.CashierCode))
+            .Distinct()
+            .Count();
+        log.InfoPosRowsLoaded(dataset.Transactions.Count, cashierCount);
 
         progress.Report("特徴量を集計中...");
-        var featureSummary = summaryBuilder.Build(records);
-        log.InfoFeatureSummaryBuilt(featureSummary.DailySummaries.Count, featureSummary.SequenceAnomalies.Count);
+        var featureSummary = summaryBuilder.Build(dataset);
+        log.InfoFeatureSummaryBuilt(featureSummary.CashierSummaries.Count, featureSummary.FraudSignals.Count);
 
         progress.Report("AIで分析中...");
-        var analysis = await analyzer.AnalyzeAsync(featureSummary, records, cancellationToken).ConfigureAwait(false);
+        var (analysis, usage) = await analyzer.AnalyzeAsync(featureSummary, dataset, cancellationToken).ConfigureAwait(false);
         log.InfoPosAnalysisCompleted(analysis.OverallScore);
 
-        var previewRows = records.Take(settings.PreviewRowCount).ToArray();
-        return new PosCheckResult(Path.GetFileName(filePath), featureSummary, analysis, previewRows);
+        var previewTransactions = dataset.Transactions.Take(settings.PreviewRowCount).ToArray();
+        var previewPromotions = dataset.Promotions.Take(settings.PreviewRowCount).ToArray();
+        return new PosCheckResult(featureSummary, analysis, usage, previewTransactions, previewPromotions);
     }
 }
