@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="AGENTS.md" />
+    <File Path="Analyzers.ruleset" />
+    <File Path="AutoOrder.sln.DotSettings" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AutoOrder.Agent/AutoOrder.Agent.csproj" />
+    <Project Path="src/AutoOrder.AppHost/AutoOrder.AppHost.csproj" />
+    <Project Path="src/AutoOrder.Data/AutoOrder.Data.csproj" />
+    <Project Path="src/AutoOrder.Domain/AutoOrder.Domain.csproj" />
+    <Project Path="src/AutoOrder.Web/AutoOrder.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AutoOrder.Agent.Tests/AutoOrder.Agent.Tests.csproj" />
+    <Project Path="tests/AutoOrder.Data.Tests/AutoOrder.Data.Tests.csproj" />
+    <Project Path="tests/AutoOrder.Domain.Tests/AutoOrder.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

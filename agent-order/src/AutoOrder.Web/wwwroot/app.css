@@ -1,0 +1,32 @@
+/* AutoOrder 共通スタイル（Dense 基調） */
+
+body {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.875rem;
+}
+
+/* Dense テーブル行の高さを詰める */
+.mud-table-dense .mud-table-row td {
+    padding: 2px 8px;
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}

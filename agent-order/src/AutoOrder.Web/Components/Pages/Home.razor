@@ -1,0 +1,44 @@
+@page "/"
+
+<PageTitle>ダッシュボード - 自動発注エージェント</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-3">ダッシュボード</MudText>
+
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+    Phase 0 のスケルトンです。ダッシュボード・チャット・承認などの中身は順次実装します。
+</MudAlert>
+
+<MudGrid Spacing="2">
+    <MudItem xs="6" sm="3">
+        <MudCard Outlined="true">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2">過少在庫</MudText>
+                <MudText Typo="Typo.h5">-</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudCard Outlined="true">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2">承認待ち</MudText>
+                <MudText Typo="Typo.h5">-</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudCard Outlined="true">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2">期限切れ</MudText>
+                <MudText Typo="Typo.h5">-</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudCard Outlined="true">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2">入荷予定</MudText>
+                <MudText Typo="Typo.h5">-</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
